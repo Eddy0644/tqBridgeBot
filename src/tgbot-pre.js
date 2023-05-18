@@ -1,9 +1,9 @@
 const secret = require('../config/secret');
 const userConf = require('../config/userconf');
 const TelegramBot = require("node-telegram-bot-api");
-const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-const {tgLogger} = require('./logger')();
-const isPolling = (!(process.argv.length >= 3 && process.argv[2] === "hook"));
+// const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+// const {tgLogger} = require('./logger')();
+// const isPolling = (!(process.argv.length >= 3 && process.argv[2] === "hook"));
 let tgbot;
 // if (isPolling) {
 tgbot = new TelegramBot(secret.tgCredential.token,
