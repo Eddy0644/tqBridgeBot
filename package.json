@@ -3,6 +3,7 @@
   "version": "0.1.1",
   "dependencies": {
     "log4js": "^6.9.1",
-    "mirai-js": "^2.8.11"
+    "mirai-js": "^2.8.11",
+    "node-telegram-bot-api": "^0.61.0"
   }
 }

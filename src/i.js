@@ -5,13 +5,13 @@ const {qqLogger, tgLogger, defLogger} = require('./logger')('startup');
 
 async function sendTestMessage() {
     await qqBot.sendMessage({
-        friend: secret.testTargetNumber,
+        friend: secret.test.targetQNumber,
         message: new Message().addText('114514')
     });
 }
 
 async function main() {
-    await qqBot.open(secret.botCredential);
+    await qqBot.open(secret.miraiCredential);
     await sendTestMessage();
     qqBot.on('FriendMessage', async data => {
         await qqBot.sendMessage({
