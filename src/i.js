@@ -1,11 +1,12 @@
 const {Bot, Message} = require('mirai-js');
 const qqBot = new Bot();
 const secret = require('../config/secret');
+const {qqLogger, tgLogger, defLogger} = require('./logger')('startup');
 
 async function sendTestMessage() {
     await qqBot.sendMessage({
         friend: secret.testTargetNumber,
-        message: new Message().addText('hello world!')
+        message: new Message().addText('114514')
     });
 }
 
