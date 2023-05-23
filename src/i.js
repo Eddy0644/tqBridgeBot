@@ -1,15 +1,21 @@
-const {Bot, Message} = require('mirai-js');
+const {Bot: MiraiBot, Message: mrMessage} = require('mirai-js');
 const secret = require('../config/secret');
 const userConf = require('../config/userconf');
+const {qqLogger, tgLogger, defLogger} = require('./logger')('startup');
 
 const {tgbot} = require('./tgbot-pre');
-const qqBot = new Bot();
-const {qqLogger, tgLogger, defLogger} = require('./logger')('startup');
+tgbot.on('polling_error', async (e) => {
+    tgLogger.warn("Polling - " + e.message.replace("Error: ", ""));
+});
+tgbot.on('webhook_error', async (e) => {
+    tgLogger.warn("Webhook - " + e.message.replace("Error: ", ""));
+});
+const qqBot = new MiraiBot();
 
 async function sendTestMessage() {
     await qqBot.sendMessage({
         friend: secret.test.targetQNumber,
-        message: new Message().addText('114514')
+        message: new mrMessage().addText('114514')
     });
 }
 
@@ -22,7 +28,7 @@ async function main() {
         });
         // await qqBot.sendMessage({
         //     friend: data.sender.id,
-        //     message: new Message().addText('Echo !'),
+        //     message: new mrMessage().addText('Echo !'),
         // });
     });
 }
