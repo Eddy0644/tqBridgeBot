@@ -1,9 +1,13 @@
 {
   "name": "tqbridgebot",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "dependencies": {
     "log4js": "^6.9.1",
     "mirai-js": "^2.8.11",
     "node-telegram-bot-api": "^0.61.0"
-  }
+  },
+  "scripts": {
+    "start": "node src/i.js"
+  },
+  "repository": "https://github.com/netcyabc/tqBridgeBot"
 }

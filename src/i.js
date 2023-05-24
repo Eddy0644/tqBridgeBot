@@ -21,7 +21,7 @@ async function sendTestMessage() {
 
 async function main() {
     await qqBot.open(secret.miraiCredential);
-    await sendTestMessage();
+    // await sendTestMessage();
     qqBot.on('FriendMessage', async data => {
         await tgbot.sendMessage(secret.test.targetTGID, `Got QQ message from:<code>${JSON.stringify(data.sender, null, 2)}</code> Message Chain is: <code>${JSON.stringify(data.messageChain, null, 2)}</code>`, {
             parse_mode: "HTML"
