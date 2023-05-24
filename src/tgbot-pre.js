@@ -36,7 +36,7 @@ module.exports = {
             await delay(100);
             if (isSilent) form.disable_notification = true;
             if (parseMode) form.parse_mode = parseMode;
-            return await tgbot.sendMessage(secret.test.targetTGID, msg, form).catch((e) => tgLogger.error(e.toString()));
+            return tgbot.sendMessage(secret.test.targetTGID, msg, form).catch((e) => tgLogger.error(e.toString()));
         },
         sendChatAction: async (action) => {
             await delay(100);

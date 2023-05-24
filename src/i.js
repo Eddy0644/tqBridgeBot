@@ -64,14 +64,48 @@ async function onTGMsg(tgMsg) {
                         friend: mapPair[1].id, // Message 实例，表示一条消息
                         message: new mrMessage().addText(tgMsg.text)
                     });
-                    await tgbot.sendChatAction(secret.test.targetTGID, "choose_sticker").catch((e) => {
-                        tgLogger.error(e.toString());
-                    });
-                    defLogger.debug(`Handled a message send-back to ${mapPair[1].nickname}.`);
+                    await tgBotDo.sendChatAction("choose_sticker");
+                    defLogger.debug(`Handled a message send-back to '${mapPair[1].nickname}'.`);
                     return;
                 }
             }
             defLogger.debug(`Unable to send-back due to no match in msgMappings.`);
+        } else if (tgMsg.text === "/clear") {
+            tgLogger.trace(`Invoking softReboot by user operation...`);
+            await softReboot("User triggered.");
+        } else if (tgMsg.text === "/keyboard") {
+            let form = {
+                reply_markup: JSON.stringify({
+                    keyboard: secret.tgConf.quickKeyboard,
+                    is_persistent: false,
+                    resize_keyboard: true,
+                    one_time_keyboard: false
+                })
+            };
+            const tgMsg = await tgBotDo.sendMessage('Already set quickKeyboard! ', true, null, form);
+            await tgbot.setMyCommands(Config.TGBotCommands);
+            state.poolToDelete.add(tgMsg, 6);
+        } else if (tgMsg.text.indexOf("F$") === 0) {
+            // Want to find somebody, and have inline parameters
+            const findToken = tgMsg.text.replace("F$", "");
+            let targetQQ = null;
+            for (const pair of secret.tgConf.nameAliases) {
+                if (findToken === pair[0]) {
+                    targetQQ = pair[1];
+                    break;
+                }
+            }
+            if (targetQQ === null && !Number.isNaN(parseInt(findToken))) targetQQ = parseInt(findToken);
+            if (targetQQ > 10000) {
+                const res = await qqBot.getUserProfile({qq: targetQQ});
+                res.id = targetQQ;
+                const content = `🔍Found:  \`${JSON.stringify(res)}\``;
+                qqLogger.debug(content);
+                const tgMsg = await tgBotDo.sendMessage(content, true, "MarkdownV2");
+                addToMsgMappings(tgMsg.message_id, res, null);
+                // state.poolToDelete.add(tgMsg, 6);
+            } else qqLogger.debug(`Find [${findToken}] in QQ failed.`);
+
         } else if (tgMsg.text === "/lock") {
             state.lockTarget = state.lockTarget ? 0 : 1;
             const tgMsg = await tgBotDo.sendMessage(`Already set lock state to ${state.lockTarget}.`, true);
@@ -89,7 +123,7 @@ async function onTGMsg(tgMsg) {
                 await tgbot.sendChatAction(secret.test.targetTGID, "choose_sticker").catch((e) => {
                     tgLogger.error(e.toString());
                 });
-                defLogger.debug(`Handled a message send-back to speculative talker:(${state.target.nickname}).`);
+                defLogger.debug(`Handled a message send-back to speculative talker:(${state.last.target.nickname}).`);
             }
         }
     } catch (e) {
@@ -97,28 +131,45 @@ async function onTGMsg(tgMsg) {
     }
 }
 
+async function softReboot(reason) {
+    const userDo = (reason === "User triggered.") || (reason === "");
+    // state.lastOpt = null;
+    state.last = {};
+    const tgMsg = await tgBotDo.sendMessage(`Soft Reboot Successful.\nReason: <code>${reason}</code>`, userDo, "HTML", {
+        reply_markup: {}
+    });
+    state.poolToDelete.add(tgMsg, userDo ? 6 : 25);
+}
+
+async function onQQMsg(data) {
+    let content = `📨[<b>${data.sender.nickname}</b>] `;
+    let imagePool = [];
+    for (const msg of data.messageChain) {
+        if (msg.type === "Source") continue;
+        if (msg.type === "Plain") content += msg.text + ` `;
+        if (msg.type === "Image") {
+            //TODO: sendMediaGroup with URLs unimplemented now, using this method temporary
+            if (imagePool.length === 0) {
+                content += `[${msg.isEmoji ? "CuEmo" : "Image"}] `;
+                imagePool.push(msg.url);
+            } else {
+                content += `[<a href="${msg.url}">${msg.isEmoji ? "CuEmo" : "Image"}</a>] `;
+            }
+        }
+        if (msg.type === "Face") content += `[${msg.faceId}/${msg.name}]`;
+    }
+    qqLogger.trace(`Got QQ message from: ${JSON.stringify(data.sender, null, 2)} Message Chain is: ${JSON.stringify(data.messageChain, null, 2)}`);
+    let tgMsg;
+    if (imagePool.length === 0) tgMsg = await tgBotDo.sendMessage(content, false, "HTML");
+    else if (imagePool.length === 1) tgMsg = await tgBotDo.sendPhoto(content, imagePool[0], false, false);
+    // else tgMsg = await tgBotDo.sendMediaGroup(content, imagePool, false, false);
+    addToMsgMappings(tgMsg.message_id, data.sender, data.messageChain);
+}
+
 async function main() {
     await qqBot.open(secret.miraiCredential);
     // await sendTestMessage();
-    qqBot.on('FriendMessage', async data => {
-        let content = `📨[<b>${data.sender.nickname}</b>]`;
-        let imagePool = [];
-        for (const msg of data.messageChain) {
-            if (msg.type === "Source") continue;
-            if (msg.type === "Plain") content += msg.text + ` `;
-            if (msg.type === "Image") {
-                content += `[${msg.isEmoji ? "CuEmo" : "Image"}] `;
-                imagePool.push(msg.url);
-            }
-            if (msg.type === "Face") content += `[${msg.faceId}/${msg.name}]`;
-        }
-        qqLogger.trace(`Got QQ message from: ${JSON.stringify(data.sender, null, 2)} Message Chain is: ${JSON.stringify(data.messageChain, null, 2)}`);
-        let tgMsg;
-        if (imagePool.length === 0) tgMsg = await tgBotDo.sendMessage(content, false, "HTML");
-        else if (imagePool.length === 1) tgMsg = await tgBotDo.sendPhoto(content, imagePool[0], false, false);
-        else tgMsg = await tgBotDo.sendMediaGroup(content, imagePool, false, false);
-        addToMsgMappings(tgMsg.message_id, data.sender, data.messageChain);
-    });
+    qqBot.on('FriendMessage', onQQMsg);
 }
 
 tgbot.on('message', onTGMsg);
