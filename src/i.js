@@ -67,7 +67,7 @@ async function onTGMsg(tgMsg) {
                     await tgbot.sendChatAction(secret.test.targetTGID, "choose_sticker").catch((e) => {
                         tgLogger.error(e.toString());
                     });
-                    defLogger.debug(`Handled a message send-back to ${mapPair[2]}.`);
+                    defLogger.debug(`Handled a message send-back to ${mapPair[1].nickname}.`);
                     return;
                 }
             }
@@ -89,7 +89,7 @@ async function onTGMsg(tgMsg) {
                 await tgbot.sendChatAction(secret.test.targetTGID, "choose_sticker").catch((e) => {
                     tgLogger.error(e.toString());
                 });
-                defLogger.debug(`Handled a message send-back to speculative talker:(${state.last.name}).`);
+                defLogger.debug(`Handled a message send-back to speculative talker:(${state.target.nickname}).`);
             }
         }
     } catch (e) {
@@ -101,12 +101,16 @@ async function main() {
     await qqBot.open(secret.miraiCredential);
     // await sendTestMessage();
     qqBot.on('FriendMessage', async data => {
-        const tgMsg = await tgBotDo.sendMessage(`Got QQ message from:<code>${JSON.stringify(data.sender, null, 2)}</code> Message Chain is: <code>${JSON.stringify(data.messageChain, null, 2)}</code>`, false, "HTML");
+        let content = `📨[<b>${data.sender.nickname}</b>]`;
+        for (const msg of data.messageChain) {
+            if (msg.type === "Source") continue;
+            if (msg.type === "Plain") content += msg.text + ` `;
+            if (msg.type === "Image") content += `[<a href="${msg.url}">${msg.isEmoji ? "CuEmo" : "Image"}</a>] `;
+            if (msg.type === "Face") content += `[${msg.faceId}/${msg.name}]`;
+        }
+        qqLogger.trace(`Got QQ message from: ${JSON.stringify(data.sender, null, 2)} Message Chain is: ${JSON.stringify(data.messageChain, null, 2)}`);
+        const tgMsg = await tgBotDo.sendMessage(content, false, "HTML");
         addToMsgMappings(tgMsg.message_id, data.sender, data.messageChain);
-        // await qqBot.sendMessage({
-        //     friend: data.sender.id,
-        //     message: new mrMessage().addText('Echo !'),
-        // });
     });
 }
 
