@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="WebServers">
+    <option name="servers">
+      <webServer id="c25e94ac-a66e-4b35-b548-5cfd50a12e73" name="op1-tq">
+        <fileTransfer rootFolder="/opt/tqBridge" accessType="SFTP" host="10.2.0.1" port="22" sshConfigId="f33c9d32-92bc-43af-a017-e88eb115df09" sshConfig="root@10.2.0.1">
+          <advancedOptions>
+            <advancedOptions dataProtectionLevel="Private" passiveMode="true" shareSSLContext="true" />
+          </advancedOptions>
+        </fileTransfer>
+      </webServer>
+    </option>
+  </component>
+</project>

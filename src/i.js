@@ -102,14 +102,21 @@ async function main() {
     // await sendTestMessage();
     qqBot.on('FriendMessage', async data => {
         let content = `📨[<b>${data.sender.nickname}</b>]`;
+        let imagePool = [];
         for (const msg of data.messageChain) {
             if (msg.type === "Source") continue;
             if (msg.type === "Plain") content += msg.text + ` `;
-            if (msg.type === "Image") content += `[<a href="${msg.url}">${msg.isEmoji ? "CuEmo" : "Image"}</a>] `;
+            if (msg.type === "Image") {
+                content += `[${msg.isEmoji ? "CuEmo" : "Image"}] `;
+                imagePool.push(msg.url);
+            }
             if (msg.type === "Face") content += `[${msg.faceId}/${msg.name}]`;
         }
         qqLogger.trace(`Got QQ message from: ${JSON.stringify(data.sender, null, 2)} Message Chain is: ${JSON.stringify(data.messageChain, null, 2)}`);
-        const tgMsg = await tgBotDo.sendMessage(content, false, "HTML");
+        let tgMsg;
+        if (imagePool.length === 0) tgMsg = await tgBotDo.sendMessage(content, false, "HTML");
+        else if (imagePool.length === 1) tgMsg = await tgBotDo.sendPhoto(content, imagePool[0], false, false);
+        else tgMsg = await tgBotDo.sendMediaGroup(content, imagePool, false, false);
         addToMsgMappings(tgMsg.message_id, data.sender, data.messageChain);
     });
 }
