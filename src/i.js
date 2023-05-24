@@ -5,7 +5,7 @@ const secret = require('../config/secret');
 // const userConf = require('../config/userconf');
 const {qqLogger, tgLogger, defLogger} = require('./logger')('startup');
 
-const {tgbot} = require('./tgbot-pre');
+const {tgbot, tgBotDo} = require('./tgbot-pre');
 const {STypes, Config} = require('./common');
 tgbot.on('polling_error', async (e) => {
     tgLogger.warn("Polling - " + e.message.replace("Error: ", ""));
@@ -72,6 +72,10 @@ async function onTGMsg(tgMsg) {
                 }
             }
             defLogger.debug(`Unable to send-back due to no match in msgMappings.`);
+        } else if (tgMsg.text === "/lock") {
+            state.lockTarget = state.lockTarget ? 0 : 1;
+            const tgMsg = await tgBotDo.sendMessage(`Already set lock state to ${state.lockTarget}.`, true);
+            state.poolToDelete.add(tgMsg, 6);
         } else {
             if (Object.keys(state.last).length === 0) {
                 await tgbot.sendMessage(tgMsg.chat.id, 'Nothing to do upon your message, ' + tgMsg.chat.id);
@@ -79,8 +83,7 @@ async function onTGMsg(tgMsg) {
             } else if (state.last.s === STypes.Chat) {
                 // forward to last talker
                 await qqBot.sendMessage({
-                    // 好友 qq 号
-                    friend: state.last.target.id, // Message 实例，表示一条消息
+                    friend: state.last.target.id,
                     message: new mrMessage().addText(tgMsg.text)
                 });
                 await tgbot.sendChatAction(secret.test.targetTGID, "choose_sticker").catch((e) => {
@@ -98,9 +101,7 @@ async function main() {
     await qqBot.open(secret.miraiCredential);
     // await sendTestMessage();
     qqBot.on('FriendMessage', async data => {
-        const tgMsg = await tgbot.sendMessage(secret.test.targetTGID, `Got QQ message from:<code>${JSON.stringify(data.sender, null, 2)}</code> Message Chain is: <code>${JSON.stringify(data.messageChain, null, 2)}</code>`, {
-            parse_mode: "HTML"
-        });
+        const tgMsg = await tgBotDo.sendMessage(`Got QQ message from:<code>${JSON.stringify(data.sender, null, 2)}</code> Message Chain is: <code>${JSON.stringify(data.messageChain, null, 2)}</code>`, false, "HTML");
         addToMsgMappings(tgMsg.message_id, data.sender, data.messageChain);
         // await qqBot.sendMessage({
         //     friend: data.sender.id,

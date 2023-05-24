@@ -1,6 +1,8 @@
 const secret = require('../config/secret');
+const {tgLogger} = require('./logger');
 const userConf = require('../config/userconf');
 const TelegramBot = require("node-telegram-bot-api");
+const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const isPolling = (!(process.argv.length >= 3 && process.argv[2] === "hook"));
 process.env["NTBA_FIX_350"] = "1";
 
@@ -28,5 +30,19 @@ if (isPolling) {
 }
 
 module.exports = {
-    tgbot: tgbot
+    tgbot: tgbot,
+    tgBotDo: {
+        sendMessage: async (msg, isSilent = false, parseMode = null, form = {}) => {
+            await delay(100);
+            if (isSilent) form.disable_notification = true;
+            if (parseMode) form.parse_mode = parseMode;
+            return await tgbot.sendMessage(secret.test.targetTGID, msg, form).catch((e) => tgLogger.error(e.toString()));
+        },
+        SendChatAction: async (action) => {
+            await delay(100);
+            return await tgbot.sendChatAction(secret.test.targetTGID, action).catch((e) => {
+                tgLogger.error(e.toString());
+            });
+        },
+    }
 }
