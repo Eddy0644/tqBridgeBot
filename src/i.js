@@ -43,7 +43,7 @@ async function sendTestMessage() {
 let msgMappings = [];
 
 function addToMsgMappings(tgMsgId, talker, qqMsg, isGroup = false) {
-    msgMappings.push([tgMsgId, talker, qqMsg]);
+    msgMappings.push([tgMsgId, talker, qqMsg, isGroup ? "group" : ""]);
     if (state.lockTarget === 0) state.last = {
         s: STypes.Chat,
         target: talker,
@@ -60,11 +60,12 @@ async function onTGMsg(tgMsg) {
         if (tgMsg.reply_to_message) {
             for (const mapPair of msgMappings) {
                 if (mapPair[0] === tgMsg.reply_to_message.message_id) {
-                    await qqBot.sendMessage({
-                        // 好友 qq 号
-                        friend: mapPair[1].id, // Message 实例，表示一条消息
+                    const sendData = {
                         message: new mrMessage().addText(tgMsg.text)
-                    });
+                    };
+                    if (mapPair[3] === "group") sendData.group = mapPair[1].group.id;
+                    else sendData.friend = mapPair[1].id;
+                    await qqBot.sendMessage(sendData);
                     await tgBotDo.sendChatAction("choose_sticker");
                     defLogger.debug(`Handled a message send-back to '${mapPair[1].nickname}'.`);
                     return;
@@ -78,7 +79,7 @@ async function onTGMsg(tgMsg) {
             let form = {
                 reply_markup: JSON.stringify({
                     keyboard: secret.tgConf.quickKeyboard,
-                    is_persistent: false,
+                    is_persistent: true,
                     resize_keyboard: true,
                     one_time_keyboard: false
                 })
@@ -89,10 +90,12 @@ async function onTGMsg(tgMsg) {
         } else if (tgMsg.text.indexOf("F$") === 0) {
             // Want to find somebody, and have inline parameters
             const findToken = tgMsg.text.replace("F$", "");
+            let isGroup = false;
             let targetQQ = null;
             for (const pair of secret.tgConf.nameAliases) {
                 if (findToken === pair[0]) {
                     targetQQ = pair[1];
+                    if (pair[2] === "group") isGroup = true;
                     break;
                 }
             }
@@ -103,7 +106,7 @@ async function onTGMsg(tgMsg) {
                 const content = `🔍Found:  \`${JSON.stringify(res)}\``;
                 qqLogger.debug(content);
                 const tgMsg = await tgBotDo.sendMessage(content, true, "MarkdownV2");
-                addToMsgMappings(tgMsg.message_id, res, null);
+                addToMsgMappings(tgMsg.message_id, res, null, isGroup);
                 // state.poolToDelete.add(tgMsg, 6);
             } else qqLogger.debug(`Find [${findToken}] in QQ failed.`);
 
@@ -146,34 +149,38 @@ async function softReboot(reason) {
 }
 
 async function onQQMsg(data) {
-    let content, isGroup = false;
-    if (!data.sender.group) {
-        content = `📨[<b>${data.sender.nickname}</b>] `;
-    } else {
-        isGroup = true;
-        content = `📬[<b>${data.sender.memberName}</b>@${data.sender.group.name}] `;
-    }
-    let imagePool = [];
-    for (const msg of data.messageChain) {
-        if (msg.type === "Source") continue;
-        if (msg.type === "Plain") content += msg.text + ` `;
-        if (msg.type === "Image") {
-            //TODO: sendMediaGroup with URLs is unimplemented now, using this method temporary
-            if (imagePool.length === 0) {
-                content += `[${msg.isEmoji ? "CuEmo" : "Image"}] `;
-                imagePool.push(msg.url);
-            } else {
-                content += `[<a href="${msg.url}">${msg.isEmoji ? "CuEmo" : "Image"}</a>] `;
-            }
+    try {
+        let content, isGroup = false;
+        if (!data.sender.group) {
+            content = `📨[<b>${data.sender.nickname}</b>] `;
+        } else {
+            isGroup = true;
+            content = `📬[<b>${data.sender.memberName}</b>@${data.sender.group.name}] `;
         }
-        if (msg.type === "Face") content += `[${msg.faceId}/${msg.name}]`;
+        let imagePool = [];
+        for (const msg of data.messageChain) {
+            if (msg.type === "Source") continue;
+            if (msg.type === "Plain") content += msg.text + ` `;
+            if (msg.type === "Image") {
+                //TODO: sendMediaGroup with URLs is unimplemented now, using this method temporary
+                if (imagePool.length === 0) {
+                    content += `[${msg.isEmoji ? "CuEmo" : "Image"}] `;
+                    imagePool.push(msg.url);
+                } else {
+                    content += `[<a href="${msg.url}">${msg.isEmoji ? "CuEmo" : "Image"}</a>] `;
+                }
+            }
+            if (msg.type === "Face") content += `[${msg.faceId}/${msg.name}]`;
+        }
+        qqLogger.trace(`Got QQ message from: ${JSON.stringify(data.sender, null, 2)} Message Chain is: ${JSON.stringify(data.messageChain, null, 2)}`);
+        let tgMsg;
+        if (imagePool.length === 0) tgMsg = await tgBotDo.sendMessage(content, false, "HTML");
+        else if (imagePool.length === 1) tgMsg = await tgBotDo.sendPhoto(content, imagePool[0], false, false);
+        // else tgMsg = await tgBotDo.sendMediaGroup(content, imagePool, false, false);
+        addToMsgMappings(tgMsg.message_id, data.sender, data.messageChain, isGroup);
+    } catch (e) {
+        qqLogger.warn(`Error occurred while handling QQ message:\n\t${e.toString()}`);
     }
-    qqLogger.trace(`Got QQ message from: ${JSON.stringify(data.sender, null, 2)} Message Chain is: ${JSON.stringify(data.messageChain, null, 2)}`);
-    let tgMsg;
-    if (imagePool.length === 0) tgMsg = await tgBotDo.sendMessage(content, false, "HTML");
-    else if (imagePool.length === 1) tgMsg = await tgBotDo.sendPhoto(content, imagePool[0], false, false);
-    // else tgMsg = await tgBotDo.sendMediaGroup(content, imagePool, false, false);
-    addToMsgMappings(tgMsg.message_id, data.sender, data.messageChain, isGroup);
 }
 
 async function main() {
@@ -181,9 +188,9 @@ async function main() {
     // await sendTestMessage();
     qqBot.on('FriendMessage', onQQMsg);
     qqBot.on('GroupMessage', new Middleware()
-        .groupFilter([574252649])
+        .groupFilter(secret.qqGroupFilter)
         .done(async data => {
-            // do sth.
+            await onQQMsg(data);
         }));
 }
 

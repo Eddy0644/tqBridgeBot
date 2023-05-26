@@ -11,9 +11,9 @@ module.exports = {
             {command: '/keyboard', description: 'Get a persistent versatile quick keyboard.'},
             {command: '/placeholder', description: 'Display a placeholder to hide former messages'},
             {command: '/slet', description: 'Set last explicit talker as last talker.'},
-            {command: '/log', description: 'Get a copy of program verbose log of 1000 chars by default.'},
-            {command: '/lock', description: 'Lock the target talker to avoid being interrupted.'},
-            {command: '/spoiler', description: 'Add spoiler to the replied message.'},
+            // {command: '/log', description: 'Get a copy of program verbose log of 1000 chars by default.'},
+            // {command: '/lock', description: 'Lock the target talker to avoid being interrupted.'},
+            // {command: '/spoiler', description: 'Add spoiler to the replied message.'},
             // Add more commands as needed
         ],
         placeholder: `Start---\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nStop----`,
