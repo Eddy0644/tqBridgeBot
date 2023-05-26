@@ -44,6 +44,12 @@ module.exports = {
                 tgLogger.warn(e.toString());
             });
         },
+        revokeMessage: async (msgId) => {
+            await delay(100);
+            return await tgbot.deleteMessage(secret.test.targetTGID, msgId).catch((e) => {
+                tgLogger.warn(e.toString());
+            });
+        },
         sendPhoto: async (caption, path, isSilent = false, hasSpoiler = false) => {
             await delay(100);
             let form = {

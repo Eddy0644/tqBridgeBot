@@ -51,7 +51,7 @@ function addToMsgMappings(tgMsgId, talker, qqMsg, isGroup = false) {
         tgMsgId,
         isGroup
     };
-    defLogger.debug(`Added temporary mapping from TG msg #${tgMsgId} to QQ '${talker.nickname}'.`);
+    defLogger.debug(`Added temporary mapping from TG msg #${tgMsgId} to QQ '${isGroup ? talker.memberName : talker.nickname}'.`);
 
 }
 
@@ -103,13 +103,14 @@ async function onTGMsg(tgMsg) {
             }
             if (targetQQ === null && !Number.isNaN(parseInt(findToken))) targetQQ = parseInt(findToken);
             if (targetQQ > 10000) {
-                let content, res = null;
+                let content, res;
                 if (!isGroup) {
                     res = await qqBot.getUserProfile({qq: targetQQ});
                     res.id = targetQQ;
                     content = `🔍Found:  \`${JSON.stringify(res)}\`;`;
                 } else {
                     content = `🔍Set Message target to Group ${targetQQ};`;
+                    res = {group: {id: targetQQ}};
                 }
                 qqLogger.debug(content);
                 const tgMsg = await tgBotDo.sendMessage(content, true, "MarkdownV2");
@@ -203,3 +204,24 @@ async function main() {
 
 tgbot.on('message', onTGMsg);
 main().then(r => defLogger.info(`Bootstrap completed. (${r})`));
+
+const timerData = setInterval(async () => {
+    try {
+        for (const itemId in state.poolToDelete) {
+            if (Number.isNaN(parseInt(itemId))) continue;
+            const item = state.poolToDelete[parseInt(itemId)];
+            if (dayjs().unix() > item.toDelTs) {
+                // delete the element first to avoid the same ITEM triggers function again if interrupted by errors.
+                state.poolToDelete.splice(parseInt(itemId), 1);
+                tgLogger.debug(`Attempting to remove expired messages driven by its timer.`);
+                await tgBotDo.revokeMessage(item.tgMsg.message_id);
+            }
+        }
+    } catch (e) {
+        defLogger.info(`An exception happened within timer function with x${timerDataCount} reset cycles left:\n\t${e.toString()}`);
+        timerDataCount--;
+        if (timerDataCount < 0) clearInterval(timerData);
+    }
+}, 5000);
+let timerDataCount = 6;
+// let msgMergeFailCount = 6;
