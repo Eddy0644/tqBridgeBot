@@ -36,12 +36,12 @@ module.exports = {
             await delay(100);
             if (isSilent) form.disable_notification = true;
             if (parseMode) form.parse_mode = parseMode;
-            return tgbot.sendMessage(secret.test.targetTGID, msg, form).catch((e) => tgLogger.error(e.toString()));
+            return tgbot.sendMessage(secret.test.targetTGID, msg, form).catch((e) => tgLogger.warn(e.toString()));
         },
         sendChatAction: async (action) => {
             await delay(100);
             return await tgbot.sendChatAction(secret.test.targetTGID, action).catch((e) => {
-                tgLogger.error(e.toString());
+                tgLogger.warn(e.toString());
             });
         },
         sendPhoto: async (caption, path, isSilent = false, hasSpoiler = false) => {
@@ -54,7 +54,7 @@ module.exports = {
                 parse_mode: "HTML",
             };
             if (isSilent) form.disable_notification = true;
-            return await tgbot.sendPhoto(secret.test.targetTGID, path, form, {contentType: 'image/jpeg'}).catch((e) => tgLogger.error(e.toString()));
+            return await tgbot.sendPhoto(secret.test.targetTGID, path, form, {contentType: 'image/jpeg'}).catch((e) => tgLogger.warn(e.toString()));
         },
         sendMediaGroup: async (caption, arr, isSilent = false, hasSpoiler = false) => {
             await delay(100);
@@ -66,7 +66,7 @@ module.exports = {
                 parse_mode: "HTML",
             };
             if (isSilent) form.disable_notification = true;
-            return await tgbot.sendMediaGroup(secret.test.targetTGID, arr, form, {contentType: 'image/jpeg'}).catch((e) => tgLogger.error(e.toString()));
+            return await tgbot.sendMediaGroup(secret.test.targetTGID, arr, form, {contentType: 'image/jpeg'}).catch((e) => tgLogger.warn(e.toString()));
         },
     }
 }

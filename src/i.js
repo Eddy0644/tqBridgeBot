@@ -56,6 +56,8 @@ function addToMsgMappings(tgMsgId, talker, qqMsg, isGroup = false) {
 }
 
 async function onTGMsg(tgMsg) {
+    //Drop pending updates
+    if (process.uptime() < 5) return;
     try {
         if (tgMsg.reply_to_message) {
             for (const mapPair of msgMappings) {
@@ -101,9 +103,14 @@ async function onTGMsg(tgMsg) {
             }
             if (targetQQ === null && !Number.isNaN(parseInt(findToken))) targetQQ = parseInt(findToken);
             if (targetQQ > 10000) {
-                const res = await qqBot.getUserProfile({qq: targetQQ});
-                res.id = targetQQ;
-                const content = `🔍Found:  \`${JSON.stringify(res)}\``;
+                let content, res = null;
+                if (!isGroup) {
+                    res = await qqBot.getUserProfile({qq: targetQQ});
+                    res.id = targetQQ;
+                    content = `🔍Found:  \`${JSON.stringify(res)}\`;`;
+                } else {
+                    content = `🔍Set Message target to Group ${targetQQ};`;
+                }
                 qqLogger.debug(content);
                 const tgMsg = await tgBotDo.sendMessage(content, true, "MarkdownV2");
                 addToMsgMappings(tgMsg.message_id, res, null, isGroup);
@@ -128,7 +135,7 @@ async function onTGMsg(tgMsg) {
                 else sendData.friend = state.last.target.id;
                 await qqBot.sendMessage(sendData);
                 await tgbot.sendChatAction(secret.test.targetTGID, "choose_sticker").catch((e) => {
-                    tgLogger.error(e.toString());
+                    tgLogger.warn(e.toString());
                 });
                 defLogger.debug(`Handled a message send-back to speculative talker:(${state.last.target.nickname}).`);
             }
@@ -152,10 +159,10 @@ async function onQQMsg(data) {
     try {
         let content, isGroup = false;
         if (!data.sender.group) {
-            content = `📨[<b>${data.sender.nickname}</b>] `;
+            content = `📨[<b>${data.sender.remark}</b>] `;
         } else {
             isGroup = true;
-            content = `📬[<b>${data.sender.memberName}</b>@${data.sender.group.name}] `;
+            content = `📬[<b>${data.sender.memberName}</b> @ ${data.sender.group.name}] `;
         }
         let imagePool = [];
         for (const msg of data.messageChain) {
