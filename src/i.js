@@ -1,6 +1,6 @@
 //#noinspection JSUnresolvedVariable
 const dayjs = require('dayjs');
-const {Bot: MiraiBot, Message: mrMessage} = require('mirai-js');
+const {Bot: MiraiBot, Message: mrMessage, Middleware} = require('mirai-js');
 const secret = require('../config/secret');
 // const userConf = require('../config/userconf');
 const {qqLogger, tgLogger, defLogger} = require('./logger')('startup');
@@ -42,13 +42,14 @@ async function sendTestMessage() {
 
 let msgMappings = [];
 
-function addToMsgMappings(tgMsgId, talker, qqMsg) {
+function addToMsgMappings(tgMsgId, talker, qqMsg, isGroup = false) {
     msgMappings.push([tgMsgId, talker, qqMsg]);
     if (state.lockTarget === 0) state.last = {
         s: STypes.Chat,
         target: talker,
         qqMsg,
-        tgMsgId
+        tgMsgId,
+        isGroup
     };
     defLogger.debug(`Added temporary mapping from TG msg #${tgMsgId} to QQ '${talker.nickname}'.`);
 
@@ -116,10 +117,13 @@ async function onTGMsg(tgMsg) {
                 await tgbot.setMyCommands(Config.TGBotCommands);
             } else if (state.last.s === STypes.Chat) {
                 // forward to last talker
-                await qqBot.sendMessage({
-                    friend: state.last.target.id,
+                const sendData = {
+                    // friend: state.last.target.id,
                     message: new mrMessage().addText(tgMsg.text)
-                });
+                };
+                if (state.last.isGroup) sendData.group = state.last.target.group.id;
+                else sendData.friend = state.last.target.id;
+                await qqBot.sendMessage(sendData);
                 await tgbot.sendChatAction(secret.test.targetTGID, "choose_sticker").catch((e) => {
                     tgLogger.error(e.toString());
                 });
@@ -142,13 +146,19 @@ async function softReboot(reason) {
 }
 
 async function onQQMsg(data) {
-    let content = `📨[<b>${data.sender.nickname}</b>] `;
+    let content, isGroup = false;
+    if (!data.sender.group) {
+        content = `📨[<b>${data.sender.nickname}</b>] `;
+    } else {
+        isGroup = true;
+        content = `📬[<b>${data.sender.memberName}</b>@${data.sender.group.name}] `;
+    }
     let imagePool = [];
     for (const msg of data.messageChain) {
         if (msg.type === "Source") continue;
         if (msg.type === "Plain") content += msg.text + ` `;
         if (msg.type === "Image") {
-            //TODO: sendMediaGroup with URLs unimplemented now, using this method temporary
+            //TODO: sendMediaGroup with URLs is unimplemented now, using this method temporary
             if (imagePool.length === 0) {
                 content += `[${msg.isEmoji ? "CuEmo" : "Image"}] `;
                 imagePool.push(msg.url);
@@ -163,13 +173,18 @@ async function onQQMsg(data) {
     if (imagePool.length === 0) tgMsg = await tgBotDo.sendMessage(content, false, "HTML");
     else if (imagePool.length === 1) tgMsg = await tgBotDo.sendPhoto(content, imagePool[0], false, false);
     // else tgMsg = await tgBotDo.sendMediaGroup(content, imagePool, false, false);
-    addToMsgMappings(tgMsg.message_id, data.sender, data.messageChain);
+    addToMsgMappings(tgMsg.message_id, data.sender, data.messageChain, isGroup);
 }
 
 async function main() {
     await qqBot.open(secret.miraiCredential);
     // await sendTestMessage();
     qqBot.on('FriendMessage', onQQMsg);
+    qqBot.on('GroupMessage', new Middleware()
+        .groupFilter([574252649])
+        .done(async data => {
+            // do sth.
+        }));
 }
 
 tgbot.on('message', onTGMsg);
