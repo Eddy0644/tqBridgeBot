@@ -36,7 +36,7 @@ state.poolToDelete.add = function (tgMsg, delay) {
 
 async function sendTestMessage() {
     await qqBot.sendMessage({
-        friend: secret.test.targetQNumber, message: new mrMessage().addText('114514')
+        friend: secret.target.QNumber, message: new mrMessage().addText('114514')
     });
 }
 
@@ -59,7 +59,17 @@ async function onTGMsg(tgMsg) {
     //Drop pending updates
     if (process.uptime() < 5) return;
     try {
-        if (tgMsg.reply_to_message) {
+        if (!secret.target.tgAllowList.includes(tgMsg.from.id)) {
+            tgLogger.trace(`Got TG message (#${tgMsg.message_id}) from unauthorized user (${tgMsg.from.id}), Ignoring.`);
+            return;
+        }
+        if (tgMsg.chat.type === "supergroup" ? (tgMsg.message_thread_id === secret.target.tgThreadID) : true) {
+        } else {
+            tgLogger.trace(`Got TG message (#${tgMsg.message_id}) from supergroup but thread_id (${tgMsg.message_thread_id}) not match, Ignoring.`);
+            return;
+        }
+
+        if (tgMsg.reply_to_message && !secret.target.tgThreadInreplyExcludes.includes(tgMsg.reply_to_message.message_id)) {
             for (const mapPair of msgMappings) {
                 if (mapPair[0] === tgMsg.reply_to_message.message_id) {
                     const sendData = {
@@ -135,7 +145,7 @@ async function onTGMsg(tgMsg) {
                 if (state.last.isGroup) sendData.group = state.last.target.group.id;
                 else sendData.friend = state.last.target.id;
                 await qqBot.sendMessage(sendData);
-                await tgbot.sendChatAction(secret.test.targetTGID, "choose_sticker").catch((e) => {
+                await tgbot.sendChatAction(secret.target.tgID, "choose_sticker").catch((e) => {
                     tgLogger.warn(e.toString());
                 });
                 defLogger.debug(`Handled a message send-back to speculative talker:(${state.last.target.nickname}).`);

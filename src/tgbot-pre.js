@@ -34,19 +34,20 @@ module.exports = {
     tgBotDo: {
         sendMessage: async (msg, isSilent = false, parseMode = null, form = {}) => {
             await delay(100);
+            if (secret.target.tgThreadID) form.message_thread_id = secret.target.tgThreadID;
             if (isSilent) form.disable_notification = true;
             if (parseMode) form.parse_mode = parseMode;
-            return tgbot.sendMessage(secret.test.targetTGID, msg, form).catch((e) => tgLogger.warn(e.toString()));
+            return tgbot.sendMessage(secret.target.tgID, msg, form).catch((e) => tgLogger.warn(e.toString()));
         },
         sendChatAction: async (action) => {
             await delay(100);
-            return await tgbot.sendChatAction(secret.test.targetTGID, action).catch((e) => {
+            return await tgbot.sendChatAction(secret.target.tgID, action).catch((e) => {
                 tgLogger.warn(e.toString());
             });
         },
         revokeMessage: async (msgId) => {
             await delay(100);
-            return await tgbot.deleteMessage(secret.test.targetTGID, msgId).catch((e) => {
+            return await tgbot.deleteMessage(secret.target.tgID, msgId).catch((e) => {
                 tgLogger.warn(e.toString());
             });
         },
@@ -59,8 +60,9 @@ module.exports = {
                 height: 100,
                 parse_mode: "HTML",
             };
+            if (secret.target.tgThreadID) form.message_thread_id = secret.target.tgThreadID;
             if (isSilent) form.disable_notification = true;
-            return await tgbot.sendPhoto(secret.test.targetTGID, path, form, {contentType: 'image/jpeg'}).catch((e) => tgLogger.warn(e.toString()));
+            return await tgbot.sendPhoto(secret.target.tgID, path, form, {contentType: 'image/jpeg'}).catch((e) => tgLogger.warn(e.toString()));
         },
         sendMediaGroup: async (caption, arr, isSilent = false, hasSpoiler = false) => {
             await delay(100);
@@ -71,8 +73,9 @@ module.exports = {
                 height: 100,
                 parse_mode: "HTML",
             };
+            if (secret.target.tgThreadID) form.message_thread_id = secret.target.tgThreadID;
             if (isSilent) form.disable_notification = true;
-            return await tgbot.sendMediaGroup(secret.test.targetTGID, arr, form, {contentType: 'image/jpeg'}).catch((e) => tgLogger.warn(e.toString()));
+            return await tgbot.sendMediaGroup(secret.target.tgID, arr, form, {contentType: 'image/jpeg'}).catch((e) => tgLogger.warn(e.toString()));
         },
     }
 }
