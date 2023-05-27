@@ -51,7 +51,7 @@ function addToMsgMappings(tgMsgId, talker, qqMsg, isGroup = false) {
         tgMsgId,
         isGroup
     };
-    defLogger.debug(`Added temporary mapping from TG msg #${tgMsgId} to QQ '${isGroup ? talker.memberName : talker.nickname}'.`);
+    defLogger.debug(`Added temporary mapping from TG msg #${tgMsgId} to QQ '${isGroup ? talker.group.name : talker.nickname}'.`);
 
 }
 
@@ -63,7 +63,7 @@ async function onTGMsg(tgMsg) {
             tgLogger.trace(`Got TG message (#${tgMsg.message_id}) from unauthorized user (${tgMsg.from.id}), Ignoring.`);
             return;
         }
-        if (tgMsg.chat.type === "supergroup" ? (tgMsg.message_thread_id === secret.target.tgThreadID) : true) {
+        if (tgMsg.chat.type === "supergroup" ? (secret.target.tgAllowThreadID.includes(tgMsg.message_thread_id)) : true) {
         } else {
             tgLogger.trace(`Got TG message (#${tgMsg.message_id}) from supergroup but thread_id (${tgMsg.message_thread_id}) not match, Ignoring.`);
             return;
@@ -148,11 +148,11 @@ async function onTGMsg(tgMsg) {
                 await tgbot.sendChatAction(secret.target.tgID, "choose_sticker").catch((e) => {
                     tgLogger.warn(e.toString());
                 });
-                defLogger.debug(`Handled a message send-back to speculative talker:(${state.last.target.nickname}).`);
+                defLogger.debug(`Handled a message send-back to speculative talker:(${state.last.isGroup ? state.last.group.name : state.last.nickname}).`);
             }
         }
     } catch (e) {
-        tgLogger.warn(`Uncaught Error while handling TG message: ${e.message}`);
+        tgLogger.warn(`Uncaught Error while handling TG message: ${e.message}.`);
     }
 }
 

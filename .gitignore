@@ -1,1 +1,3 @@
 /config/secret.js
+/config/cli.pem
+/config/srv.pem
