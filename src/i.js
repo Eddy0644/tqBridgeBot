@@ -6,7 +6,7 @@ const secret = require('../config/secret');
 const {qqLogger, tgLogger, defLogger} = require('./logger')('startup');
 
 const {tgbot, tgBotDo} = require('./tgbot-pre');
-const {STypes, Config} = require('./common');
+const {STypes, Config, coProcessor} = require('./common');
 tgbot.on('polling_error', async (e) => {
     tgLogger.warn("Polling - " + e.message.replace("Error: ", ""));
 });
@@ -205,7 +205,7 @@ async function onQQMsg(data) {
         let tgMsg;
         if (imagePool.length === 0) {
             try {
-                if (!isGroup && isPrePersonValid(state.prePerson, data.sender.id)) {
+                if (!isGroup && coProcessor.isPreStateValid(state.prePerson, data.sender.id)) {
                     //TODO: add template string separately!!!
                     const _ = state.prePerson;
                     data.prePersonNeedUpdate = false;
@@ -258,18 +258,6 @@ async function main() {
         }));
 }
 
-function isPrePersonValid(prePersState, targetQN) {
-    try {
-        const _ = prePersState;
-        // noinspection JSUnresolvedVariable
-        const lastDate = (_.tgMsg) ? (_.tgMsg.edit_date || _.tgMsg.date) : 0;
-        const nowDate = dayjs().unix();
-        return (_.pers_id === targetQN && nowDate - lastDate < 12);
-    } catch (e) {
-        defLogger.debug(`Error occurred while validating preRoomState.\n\t${e.toString()}`);
-        return false;
-    }
-}
 
 tgbot.on('message', onTGMsg);
 main().then(r => defLogger.info(`Bootstrap completed. (${r})`));

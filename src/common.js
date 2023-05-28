@@ -1,3 +1,5 @@
+const dayjs = require("dayjs");
+const {defLogger} = require('./logger')();
 module.exports = {
     STypes: {
         Chat: 1,
@@ -17,5 +19,19 @@ module.exports = {
             // Add more commands as needed
         ],
         placeholder: `Start---\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nStop----`,
-    }
+    },
+    coProcessor: {
+        isPreStateValid: function (preState, targetQN) {
+            try {
+                const _ = preState;
+                // noinspection JSUnresolvedVariable
+                const lastDate = (_.tgMsg) ? (_.tgMsg.edit_date || _.tgMsg.date) : 0;
+                const nowDate = dayjs().unix();
+                return (_.pers_id === targetQN && nowDate - lastDate < 12);
+            } catch (e) {
+                defLogger.debug(`Error occurred while validating pre__State.\n\t${e.toString()}`);
+                return false;
+            }
+        }
+    },
 }
