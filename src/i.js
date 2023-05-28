@@ -20,7 +20,7 @@ let state = {
     lockTarget: 0,
     prePerson: {
         tgMsg: null,
-        name: "",
+        pers_id: 0,
     },
     // store TG messages which need to be revoked after a period of time
     poolToDelete: [],
@@ -160,6 +160,10 @@ async function softReboot(reason) {
     const userDo = (reason === "User triggered.") || (reason === "");
     // state.lastOpt = null;
     state.last = {};
+    state.prePerson = {
+        tgMsg: null,
+        pers_id: 0,
+    }
     const tgMsg = await tgBotDo.sendMessage(`Soft Reboot Successful.\nReason: <code>${reason}</code>`, userDo, "HTML", {
         reply_markup: {}
     });
@@ -193,12 +197,14 @@ async function onQQMsg(data) {
         }
         qqLogger.trace(`Got QQ message from: ${JSON.stringify(data.sender, null, 2)} Message Chain is: ${JSON.stringify(data.messageChain, null, 2)}`);
         let tgMsg;
-        if (imagePool.length === 0) tgMsg = await tgBotDo.sendMessage(content, false, "HTML");
-        else if (imagePool.length === 1) tgMsg = await tgBotDo.sendPhoto(content, imagePool[0], false, shouldSpoiler);
+        if (imagePool.length === 0) {
+
+            tgMsg = await tgBotDo.sendMessage(content, false, "HTML");
+        } else if (imagePool.length === 1) tgMsg = await tgBotDo.sendPhoto(content, imagePool[0], false, shouldSpoiler);
         // else tgMsg = await tgBotDo.sendMediaGroup(content, imagePool, false, false);
         addToMsgMappings(tgMsg.message_id, data.sender, data.messageChain, isGroup);
     } catch (e) {
-        qqLogger.warn(`Error occurred while handling QQ message:\n\t${e.toString()}`);
+        qqLogger.warn(`Error occurred while handling QQ message:\n\t${e}`);
     }
 }
 
@@ -211,6 +217,19 @@ async function main() {
         .done(async data => {
             await onQQMsg(data);
         }));
+}
+
+function isPrePersonValid(prePersState, targetQN) {
+    try {
+        const _ = prePersState;
+        // noinspection JSUnresolvedVariable
+        const lastDate = (_.tgMsg) ? (_.tgMsg.edit_date || _.tgMsg.date) : 0;
+        const nowDate = dayjs().unix();
+        return (_.pers_id === targetQN && nowDate - lastDate < 12);
+    } catch (e) {
+        defLogger.debug(`Error occurred while validating preRoomState.\n\t${e.toString()}`);
+        return false;
+    }
 }
 
 tgbot.on('message', onTGMsg);
