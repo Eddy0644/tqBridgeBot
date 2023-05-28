@@ -175,13 +175,14 @@ async function onQQMsg(data) {
             isGroup = true;
             content = `📬[<b>${data.sender.memberName}</b> @ ${data.sender.group.name}] `;
         }
-        let imagePool = [];
+        let imagePool = [], shouldSpoiler = false;
         for (const msg of data.messageChain) {
             if (msg.type === "Source") continue;
             if (msg.type === "Plain") content += msg.text + ` `;
             if (msg.type === "Image") {
                 //TODO: sendMediaGroup with URLs is unimplemented now, using this method temporary
                 if (imagePool.length === 0) {
+                    if (msg.isEmoji) shouldSpoiler = true;
                     content += `[${msg.isEmoji ? "CuEmo" : "Image"}] `;
                     imagePool.push(msg.url);
                 } else {
@@ -193,7 +194,7 @@ async function onQQMsg(data) {
         qqLogger.trace(`Got QQ message from: ${JSON.stringify(data.sender, null, 2)} Message Chain is: ${JSON.stringify(data.messageChain, null, 2)}`);
         let tgMsg;
         if (imagePool.length === 0) tgMsg = await tgBotDo.sendMessage(content, false, "HTML");
-        else if (imagePool.length === 1) tgMsg = await tgBotDo.sendPhoto(content, imagePool[0], false, false);
+        else if (imagePool.length === 1) tgMsg = await tgBotDo.sendPhoto(content, imagePool[0], false, shouldSpoiler);
         // else tgMsg = await tgBotDo.sendMediaGroup(content, imagePool, false, false);
         addToMsgMappings(tgMsg.message_id, data.sender, data.messageChain, isGroup);
     } catch (e) {
