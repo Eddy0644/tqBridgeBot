@@ -175,14 +175,14 @@ async function softReboot(reason) {
 
 async function onQQMsg(data) {
     try {
-        let content, isGroup = false;
+        let content = "", isGroup = false, deliverTemplate;
         let name;
         if (!data.sender.group) {
-            content = `📨[<b>${data.sender.remark}</b>] `;
+            deliverTemplate = `📨[<b>${data.sender.remark}</b>] `;
             name = data.sender.remark;
         } else {
             isGroup = true;
-            content = `📬[<b>${data.sender.memberName}</b> @ ${data.sender.group.name}] `;
+            deliverTemplate = `📬[<b>${data.sender.memberName}</b> @ ${data.sender.group.name}] `;
             name = data.sender.memberName;
         }
         let imagePool = [], shouldSpoiler = false;
@@ -207,7 +207,6 @@ async function onQQMsg(data) {
             try {
                 if (!isGroup && isPrePersonValid(state.prePerson, data.sender.id)) {
                     //TODO: add template string separately!!!
-                    content = content.substring(content.indexOf("]") + 1, content.length).trim();
                     const _ = state.prePerson;
                     data.prePersonNeedUpdate = false;
                     // from same person, ready to merge
@@ -220,7 +219,7 @@ async function onQQMsg(data) {
                         return;
                     } else {
                         // 准备修改先前的消息，去除头部        \n📨📨
-                        const newString = `📨⛓️ [<b>${name}</b>] ------\n${_.firstWord}\n[${dayjs().format("H:mm:ss")}] ${content}`;
+                        const newString = `📨⛓️ [<b>${name}</b>] - - - -\n${_.firstWord}\n[${dayjs().format("H:mm:ss")}] ${content}`;
                         _.tgMsg = await tgBotDo.editMessageText(newString, _.tgMsg);
                         _.firstWord = "";
                         defLogger.debug(`Delivered new message "${content}" from Person: ${name} into first message.`);
@@ -234,13 +233,13 @@ async function onQQMsg(data) {
             }
 
 
-            tgMsg = await tgBotDo.sendMessage(content, false, "HTML");
+            tgMsg = await tgBotDo.sendMessage(deliverTemplate + content, false, "HTML");
             if (!isGroup && data.prePersonNeedUpdate) {
                 state.prePerson.pers_id = data.sender.id;
                 state.prePerson.tgMsg = tgMsg;
                 state.prePerson.firstWord = `[${dayjs().format("H:mm:ss")}] ${content}`;
             }
-        } else if (imagePool.length === 1) tgMsg = await tgBotDo.sendPhoto(content, imagePool[0], false, shouldSpoiler);
+        } else if (imagePool.length === 1) tgMsg = await tgBotDo.sendPhoto(deliverTemplate + content, imagePool[0], false, shouldSpoiler);
         // else tgMsg = await tgBotDo.sendMediaGroup(content, imagePool, false, false);
         addToMsgMappings(tgMsg.message_id, data.sender, data.messageChain, isGroup);
     } catch (e) {
