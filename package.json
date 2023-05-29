@@ -1,6 +1,6 @@
 {
   "name": "tqbridgebot",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "dependencies": {
     "dayjs": "^1.11.7",
     "https-proxy-agent": "^7.0.0",
@@ -12,7 +12,7 @@
     "start": "node src/i.js",
     "p": "node src/i.js poll",
     "h0": "node src/i.js hook 0",
-    "h1": "node src/i.js hook 1"
+    "h9": "node src/i.js hook 9"
   },
   "repository": "https://github.com/netcyabc/tqBridgeBot"
 }

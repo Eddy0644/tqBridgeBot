@@ -5,7 +5,7 @@ const TelegramBot = require("node-telegram-bot-api");
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const isPolling = (!(process.argv.length >= 3 && process.argv[2] === "hook"));
 process.env["NTBA_FIX_350"] = "1";
-
+console.log(`Initiating TG pre-env...`);
 let tgbot;
 if (isPolling) {
     tgbot = new TelegramBot(secret.tgCredential.token,
@@ -14,7 +14,7 @@ if (isPolling) {
 } else {
     tgbot = new TelegramBot(secret.tgCredential.token, {
         webHook: {
-            port: 8443,
+            port: 8886,
             max_connections: 3,
             healthEndpoint: "/health",
             key: "config/srv.pem",
