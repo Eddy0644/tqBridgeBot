@@ -8,6 +8,7 @@ const {qqLogger, tgLogger, defLogger} = require('./logger')('startup');
 const {tgbot, tgBotDo} = require('./tgbot-pre');
 const {STypes, Config, coProcessor} = require('./common');
 const fs = require("fs");
+const agentEr = require("https-proxy-agent");
 tgbot.on('polling_error', async (e) => {
     tgLogger.warn("Polling - " + e.message.replace("Error: ", ""));
 });
@@ -61,7 +62,7 @@ async function onTGMsg(tgMsg) {
     //Drop pending updates
     if (process.uptime() < 5) return;
     if (tgMsg.photo) {
-        await deliverTGToQQ(tgMsg, tgMsg.photo, "photo");
+        await deliverTGMediaToQQ(tgMsg, tgMsg.photo, "photo");
         return;
     }
     try {
@@ -151,9 +152,7 @@ async function onTGMsg(tgMsg) {
                 if (state.last.isGroup) sendData.group = state.last.target.group.id;
                 else sendData.friend = state.last.target.id;
                 await qqBot.sendMessage(sendData);
-                await tgbot.sendChatAction(secret.target.tgID, "choose_sticker").catch((e) => {
-                    tgLogger.warn(e.toString());
-                });
+                await tgBotDo.sendChatAction("choose_sticker");
                 defLogger.debug(`Handled a message send-back to speculative talker:(${state.last.isGroup ? state.last.group.name : state.last.nickname}).`);
             }
         }
@@ -252,7 +251,7 @@ async function onQQMsg(data) {
     }
 }
 
-async function deliverTGToQQ(tgMsg, tg_media, media_type) {
+async function deliverTGMediaToQQ(tgMsg, tg_media, media_type) {
     if (state.last.s !== STypes.Chat) {
         await tgBotDo.sendMessage("🛠 Sorry, but media sending without last chatter is not implemented.", true);
         // TODO: to be implemented.
@@ -262,7 +261,7 @@ async function deliverTGToQQ(tgMsg, tg_media, media_type) {
     const file_id = (tgMsg.photo) ? tgMsg.photo[tgMsg.photo.length - 1].file_id : tg_media.file_id;
     const fileCloudPath = (await tgbot.getFile(file_id)).file_path;
     const rand1 = Math.random();
-    let file_path = './downloaded/' + (
+    let local_path = './downloaded/' + (
         (tgMsg.photo) ? (`photoTG/${rand1}.png`) :
             (tgMsg.document ? (`fileTG/${tg_media.file_name}`) :
                 (tgMsg.sticker ? (`stickerTG/${rand1}.webp`) :
@@ -271,27 +270,32 @@ async function deliverTGToQQ(tgMsg, tg_media, media_type) {
     // const action = (tgMsg.photo) ? (`upload_photo`) : (tgMsg.document ? (`upload_document`) : (`upload_video`));
     const action = `upload_${media_type}`;
     await tgBotDo.sendChatAction(action);
-    tgLogger.trace(`file_path is ${file_path}.`);
-    await downloadFile(`https://api.telegram.org/file/bot${secret.tgCredential.token}/${fileCloudPath}`, file_path);
+    tgLogger.trace(`file_path is ${local_path}.`);
+    await downloadHttpsWithProxy(`https://api.telegram.org/file/bot${secret.tgCredential.token}/${fileCloudPath}`, local_path);
     let packed;
-    if (tgMsg.sticker) {
-        ctLogger.trace(`Invoking TG sticker pre-process...`);
-        const uploadResult = await uploadFileToUpyun(file_path.replace('./downloaded/stickerTG/', ''), secretConfig.upyun);
-        if (uploadResult.ok) {
-            await FileBox.fromUrl(uploadResult.filePath + '!/format/jpg').toFile(`./downloaded/stickerTG/${rand1}.jpg`);
-            file_path = file_path.replace('.webp', '.jpg');
-        } else ctLogger.warn(`Error on sticker pre-process:\n\t${uploadResult.msg}`);
-    }
-    packed = await FileBox.fromFile(file_path);
-
-    await tgBotDo.SendChatAction("record_video");
-    await state.last.target.say(packed);
-    ctLogger.debug(`Handled a (${action}) message send-back to speculative talker:${state.last.name}.`);
-    await tgBotDo.SendChatAction("choose_sticker");
+    // if (tgMsg.sticker) {
+    //     ctLogger.trace(`Invoking TG sticker pre-process...`);
+    //     const uploadResult = await uploadFileToUpyun(local_path.replace('./downloaded/stickerTG/', ''), secretConfig.upyun);
+    //     if (uploadResult.ok) {
+    //         await FileBox.fromUrl(uploadResult.filePath + '!/format/jpg').toFile(`./downloaded/stickerTG/${rand1}.jpg`);
+    //         local_path = local_path.replace('.webp', '.jpg');
+    //     } else ctLogger.warn(`Error on sticker pre-process:\n\t${uploadResult.msg}`);
+    // }
+    const {imageId, url, path} = await qqBot.uploadImage({filename: local_path});
+    await tgBotDo.sendChatAction("record_video");
+    const sendData = {
+        message: new mrMessage().addText(tgMsg.caption ? tgMsg.caption : "")
+            .addImageUrl(url)
+    };
+    if (state.last.isGroup) sendData.group = state.last.target.group.id;
+    else sendData.friend = state.last.target.id;
+    await qqBot.sendMessage(sendData);
+    defLogger.debug(`Handled a (${action}) message send-back to speculative talker:${state.last.isGroup ? state.last.group.name : state.last.nickname}.`);
+    await tgBotDo.sendChatAction("choose_sticker");
     return true;
 }
 
-async function downloadFile(url, pathName) {
+async function downloadHttpsWithProxy(url, pathName) {
     return new Promise((resolve, reject) => {
         const file = fs.createWriteStream(pathName);
         const agent = new agentEr.HttpsProxyAgent(require("../proxy"));

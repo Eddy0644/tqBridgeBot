@@ -3,6 +3,7 @@
   "version": "0.1.5",
   "dependencies": {
     "dayjs": "^1.11.7",
+    "https-proxy-agent": "^7.0.0",
     "log4js": "^6.9.1",
     "mirai-js": "^2.8.11",
     "node-telegram-bot-api": "^0.61.0"
