@@ -41,7 +41,9 @@ module.exports = {
         },
         sendChatAction: async (action) => {
             await delay(100);
-            return await tgbot.sendChatAction(secret.target.tgID, action).catch((e) => {
+            return await tgbot.sendChatAction(secret.target.tgID, action,
+                secret.target.tgDefThreadID ? {message_thread_id: secret.target.tgDefThreadID} : {}
+            ).catch((e) => {
                 tgLogger.warn(e.toString());
             });
         },

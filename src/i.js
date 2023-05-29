@@ -7,6 +7,7 @@ const {qqLogger, tgLogger, defLogger} = require('./logger')('startup');
 
 const {tgbot, tgBotDo} = require('./tgbot-pre');
 const {STypes, Config, coProcessor} = require('./common');
+const fs = require("fs");
 tgbot.on('polling_error', async (e) => {
     tgLogger.warn("Polling - " + e.message.replace("Error: ", ""));
 });
@@ -59,6 +60,10 @@ function addToMsgMappings(tgMsgId, talker, qqMsg, isGroup = false) {
 async function onTGMsg(tgMsg) {
     //Drop pending updates
     if (process.uptime() < 5) return;
+    if (tgMsg.photo) {
+        await deliverTGToQQ(tgMsg, tgMsg.photo, "photo");
+        return;
+    }
     try {
         if (!secret.target.tgAllowList.includes(tgMsg.from.id)) {
             tgLogger.trace(`Got TG message (#${tgMsg.message_id}) from unauthorized user (${tgMsg.from.id}), Ignoring.`);
@@ -245,6 +250,62 @@ async function onQQMsg(data) {
     } catch (e) {
         qqLogger.warn(`Error occurred while handling QQ message:\n\t${e}`);
     }
+}
+
+async function deliverTGToQQ(tgMsg, tg_media, media_type) {
+    if (state.last.s !== STypes.Chat) {
+        await tgBotDo.sendMessage("🛠 Sorry, but media sending without last chatter is not implemented.", true);
+        // TODO: to be implemented.
+        return;
+    }
+    tgLogger.trace(`Received TG ${media_type} message, proceeding...`);
+    const file_id = (tgMsg.photo) ? tgMsg.photo[tgMsg.photo.length - 1].file_id : tg_media.file_id;
+    const fileCloudPath = (await tgbot.getFile(file_id)).file_path;
+    const rand1 = Math.random();
+    let file_path = './downloaded/' + (
+        (tgMsg.photo) ? (`photoTG/${rand1}.png`) :
+            (tgMsg.document ? (`fileTG/${tg_media.file_name}`) :
+                (tgMsg.sticker ? (`stickerTG/${rand1}.webp`) :
+                    (`videoTG/${rand1}.mp4`))));
+    // (tgMsg.photo)?(``):(tgMsg.document?(``):(``))
+    // const action = (tgMsg.photo) ? (`upload_photo`) : (tgMsg.document ? (`upload_document`) : (`upload_video`));
+    const action = `upload_${media_type}`;
+    await tgBotDo.sendChatAction(action);
+    tgLogger.trace(`file_path is ${file_path}.`);
+    await downloadFile(`https://api.telegram.org/file/bot${secret.tgCredential.token}/${fileCloudPath}`, file_path);
+    let packed;
+    if (tgMsg.sticker) {
+        ctLogger.trace(`Invoking TG sticker pre-process...`);
+        const uploadResult = await uploadFileToUpyun(file_path.replace('./downloaded/stickerTG/', ''), secretConfig.upyun);
+        if (uploadResult.ok) {
+            await FileBox.fromUrl(uploadResult.filePath + '!/format/jpg').toFile(`./downloaded/stickerTG/${rand1}.jpg`);
+            file_path = file_path.replace('.webp', '.jpg');
+        } else ctLogger.warn(`Error on sticker pre-process:\n\t${uploadResult.msg}`);
+    }
+    packed = await FileBox.fromFile(file_path);
+
+    await tgBotDo.SendChatAction("record_video");
+    await state.last.target.say(packed);
+    ctLogger.debug(`Handled a (${action}) message send-back to speculative talker:${state.last.name}.`);
+    await tgBotDo.SendChatAction("choose_sticker");
+    return true;
+}
+
+async function downloadFile(url, pathName) {
+    return new Promise((resolve, reject) => {
+        const file = fs.createWriteStream(pathName);
+        const agent = new agentEr.HttpsProxyAgent(require("../proxy"));
+        require('https').get(url, {agent: agent}, (response) => {
+            response.pipe(file);
+            file.on('finish', () => {
+                file.close();
+                resolve("SUCCESS");
+            });
+        }).on('error', (error) => {
+            fs.unlink(pathName, () => reject(error));
+        });
+    });
+
 }
 
 async function main() {
