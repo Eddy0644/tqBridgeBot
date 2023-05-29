@@ -1,6 +1,6 @@
 {
   "name": "tqbridgebot",
-  "version": "0.1.5",
+  "version": "0.2.0",
   "dependencies": {
     "dayjs": "^1.11.7",
     "https-proxy-agent": "^7.0.0",

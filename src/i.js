@@ -61,10 +61,8 @@ function addToMsgMappings(tgMsgId, talker, qqMsg, isGroup = false) {
 async function onTGMsg(tgMsg) {
     //Drop pending updates
     if (process.uptime() < 5) return;
-    if (tgMsg.photo) {
-        await deliverTGMediaToQQ(tgMsg, tgMsg.photo, "photo");
-        return;
-    }
+    if (tgMsg.photo) return await deliverTGMediaToQQ(tgMsg, tgMsg.photo, "photo");
+
     try {
         if (!secret.target.tgAllowList.includes(tgMsg.from.id)) {
             tgLogger.trace(`Got TG message (#${tgMsg.message_id}) from unauthorized user (${tgMsg.from.id}), Ignoring.`);
@@ -108,8 +106,8 @@ async function onTGMsg(tgMsg) {
             state.poolToDelete.add(tgMsg, 6);
         } else if (tgMsg.text.indexOf("F$") === 0 || tgMsg.text.indexOf("/f") === 0) {
             // Want to find somebody, and have inline parameters
+            let isGroup = (tgMsg.text.indexOf("/fg") === 0);
             const findToken = tgMsg.text.replace("F$", "").replace("/f", "");
-            let isGroup = false;
             let targetQQ = null;
             for (const pair of secret.tgConf.nameAliases) {
                 if (findToken === pair[0]) {
@@ -127,7 +125,7 @@ async function onTGMsg(tgMsg) {
                     content = `🔍Found:  \`${JSON.stringify(res)}\`;`;
                 } else {
                     content = `🔍Set Message target to Group ${targetQQ};`;
-                    res = {group: {id: targetQQ}};
+                    res = {group: {id: targetQQ, name: targetQQ}};
                 }
                 qqLogger.debug(content);
                 const tgMsg = await tgBotDo.sendMessage(content, true, "MarkdownV2");
