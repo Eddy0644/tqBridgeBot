@@ -256,6 +256,9 @@ async function main() {
         .done(async data => {
             await onQQMsg(data);
         }));
+    qqBot.on('FriendSyncMessage', async data => {
+        if (data.subject.id === secret.miraiCredential.qq) await onQQMsg(data);
+    });
 }
 
 

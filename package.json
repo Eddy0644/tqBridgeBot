@@ -1,6 +1,6 @@
 {
   "name": "tqbridgebot",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "dependencies": {
     "dayjs": "^1.11.7",
     "log4js": "^6.9.1",
