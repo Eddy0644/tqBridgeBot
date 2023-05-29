@@ -106,9 +106,9 @@ async function onTGMsg(tgMsg) {
             const tgMsg = await tgBotDo.sendMessage('Already set quickKeyboard! ', true, null, form);
             await tgbot.setMyCommands(Config.TGBotCommands);
             state.poolToDelete.add(tgMsg, 6);
-        } else if (tgMsg.text.indexOf("F$") === 0) {
+        } else if (tgMsg.text.indexOf("F$") === 0 || tgMsg.text.indexOf("/f") === 0) {
             // Want to find somebody, and have inline parameters
-            const findToken = tgMsg.text.replace("F$", "");
+            const findToken = tgMsg.text.replace("F$", "").replace("/f", "");
             let isGroup = false;
             let targetQQ = null;
             for (const pair of secret.tgConf.nameAliases) {
@@ -153,7 +153,7 @@ async function onTGMsg(tgMsg) {
                 else sendData.friend = state.last.target.id;
                 await qqBot.sendMessage(sendData);
                 await tgBotDo.sendChatAction("choose_sticker");
-                defLogger.debug(`Handled a message send-back to speculative talker:(${state.last.isGroup ? state.last.group.name : state.last.nickname}).`);
+                defLogger.debug(`Handled a message send-back to speculative talker:(${state.last.isGroup ? state.last.target.group.name : state.last.target.nickname}).`);
             }
         }
     } catch (e) {
@@ -290,7 +290,7 @@ async function deliverTGMediaToQQ(tgMsg, tg_media, media_type) {
     if (state.last.isGroup) sendData.group = state.last.target.group.id;
     else sendData.friend = state.last.target.id;
     await qqBot.sendMessage(sendData);
-    defLogger.debug(`Handled a (${action}) message send-back to speculative talker:${state.last.isGroup ? state.last.group.name : state.last.nickname}.`);
+    defLogger.debug(`Handled a (${action}) message send-back to speculative talker:${state.last.isGroup ? state.last.target.group.name : state.last.target.nickname}.`);
     await tgBotDo.sendChatAction("choose_sticker");
     return true;
 }
