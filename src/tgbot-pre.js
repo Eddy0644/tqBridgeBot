@@ -1,5 +1,5 @@
 const secret = require('../config/secret');
-const {tgLogger} = require('./logger');
+const {tgLogger} = require('./logger')();
 const userConf = require('../config/userconf');
 const TelegramBot = require("node-telegram-bot-api");
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
