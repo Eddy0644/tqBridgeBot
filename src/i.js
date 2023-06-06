@@ -84,6 +84,8 @@ async function onTGMsg(tgMsg) {
                     else sendData.friend = mapPair[1].id;
                     await qqBot.sendMessage(sendData);
                     await tgBotDo.sendChatAction("choose_sticker");
+                    // below: set last explicit talker as speculative (=/slet)
+                    addToMsgMappings(tgMsg.message_id, mapPair[1], mapPair[2], mapPair[3]);
                     defLogger.debug(`Handled a message send-back to '${mapPair[1].nickname}'.`);
                     return;
                 }
@@ -157,9 +159,14 @@ async function onTGMsg(tgMsg) {
                         if (!isGroup) {
                             res = await qqBot.getUserProfile({qq: targetQQ});
                             res.id = targetQQ;
+                            content = `[Inline]🔍Found:  \`${JSON.stringify(res)}\`;`;
                         } else {
+                            content = `[Inline]🔍Set Message target to Group ${targetQQ};`;
                             res = {group: {id: targetQQ, name: targetQQ}};
                         }
+                        defLogger.debug(content);
+                        addToMsgMappings(tgMsg.message_id, res, null, isGroup, true);
+                        // left empty here, to continue forward message to talker and reuse the code
                     }
                 } else {
                     defLogger.trace(`Message have dual colon, but parse search token failed. Please Check.`);
