@@ -62,7 +62,11 @@ async function onTGMsg(tgMsg) {
     //Drop pending updates
     if (process.uptime() < 5) return;
     if (tgMsg.photo) return await deliverTGMediaToQQ(tgMsg, tgMsg.photo, "photo");
-
+    if (tgMsg.sticker) return await deliverTGMediaToQQ(tgMsg, tgMsg.sticker.thumbnail, "photo");
+    // if (tgMsg.sticker) {
+    //     tgMsg.mediaType = "sticker";
+    //     tgMsg.text = tgMsg.caption ? tgMsg.caption : "";
+    // }
     try {
         if (!secret.target.tgAllowList.includes(tgMsg.from.id)) {
             tgLogger.trace(`Got TG message (#${tgMsg.message_id}) from unauthorized user (${tgMsg.from.id}), Ignoring.`);
@@ -304,7 +308,6 @@ async function deliverTGMediaToQQ(tgMsg, tg_media, media_type) {
     await tgBotDo.sendChatAction(action);
     tgLogger.trace(`file_path is ${local_path}.`);
     await downloadHttpsWithProxy(`https://api.telegram.org/file/bot${secret.tgCredential.token}/${fileCloudPath}`, local_path);
-    let packed;
     // if (tgMsg.sticker) {
     //     ctLogger.trace(`Invoking TG sticker pre-process...`);
     //     const uploadResult = await uploadFileToUpyun(local_path.replace('./downloaded/stickerTG/', ''), secretConfig.upyun);
