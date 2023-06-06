@@ -54,7 +54,7 @@ function addToMsgMappings(tgMsgId, talker, qqMsg, isGroup = false, override = fa
         tgMsgId,
         isGroup
     };
-    defLogger.debug(`Added temporary mapping from TG msg #${tgMsgId} to QQ '${isGroup ? talker.group.name : talker.nickname}'.`);
+    defLogger.debug(`Added temporary mapping from TG msg #${tgMsgId} to ${isGroup ? "QGroup" : "PersonQQ"} '${isGroup ? talker.group.name : talker.nickname}'.`);
 
 }
 
@@ -159,17 +159,17 @@ async function onTGMsg(tgMsg) {
                         if (!isGroup) {
                             res = await qqBot.getUserProfile({qq: targetQQ});
                             res.id = targetQQ;
-                            content = `[Inline]🔍Found:  \`${JSON.stringify(res)}\`;`;
+                            content = `[Inline]🔍Found: \`${JSON.stringify(res)}\`;`;
                         } else {
-                            content = `[Inline]🔍Set Message target to Group ${targetQQ};`;
+                            content = `[Inline]🔍Targeting Group ${targetQQ};`;
                             res = {group: {id: targetQQ, name: targetQQ}};
                         }
                         defLogger.debug(content);
                         addToMsgMappings(tgMsg.message_id, res, null, isGroup, true);
                         // left empty here, to continue forward message to talker and reuse the code
-                    }
+                    } else defLogger.trace(`Message have inline search, but no match in nameAliases pair.`);
                 } else {
-                    defLogger.trace(`Message have dual colon, but parse search token failed. Please Check.`);
+                    defLogger.debug(`Message have dual colon, but parse search token failed. Please Check.`);
                 }
             }
             if (Object.keys(state.last).length === 0) {
