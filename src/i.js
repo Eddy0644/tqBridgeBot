@@ -45,9 +45,9 @@ async function sendTestMessage() {
 
 let msgMappings = [];
 
-function addToMsgMappings(tgMsgId, talker, qqMsg, isGroup = false) {
-    msgMappings.push([tgMsgId, talker, qqMsg, isGroup ? "group" : ""]);
-    if (state.lockTarget === 0) state.last = {
+function addToMsgMappings(tgMsgId, talker, qqMsg, isGroup = false, override = false) {
+    if (!tgMsgId) msgMappings.push([tgMsgId, talker, qqMsg, isGroup ? "group" : ""]);
+    if (state.lockTarget === 0 || override) state.last = {
         s: STypes.Chat,
         target: talker,
         qqMsg,
@@ -138,6 +138,33 @@ async function onTGMsg(tgMsg) {
             const tgMsg = await tgBotDo.sendMessage(`Already set lock state to ${state.lockTarget}.`, true);
             state.poolToDelete.add(tgMsg, 6);
         } else {
+            //inline find someone: (priority higher than ops below)
+            if (/(::|：：)\n/.test(tgMsg.text)) {
+                const match = tgMsg.text.match(/^(.{2,10})(::|：：)\n/);
+                if (match && match[1]) {
+                    // Parse Success
+                    const findToken = match[1];
+                    let targetQQ = null, isGroup = false;
+                    for (const pair of secret.tgConf.nameAliases) {
+                        if (findToken === pair[0]) {
+                            targetQQ = pair[1];
+                            if (pair[2] === "group") isGroup = true;
+                            break;
+                        }
+                    }
+                    if (targetQQ) {
+                        let content, res;
+                        if (!isGroup) {
+                            res = await qqBot.getUserProfile({qq: targetQQ});
+                            res.id = targetQQ;
+                        } else {
+                            res = {group: {id: targetQQ, name: targetQQ}};
+                        }
+                    }
+                } else {
+                    defLogger.trace(`Message have dual colon, but parse search token failed. Please Check.`);
+                }
+            }
             if (Object.keys(state.last).length === 0) {
                 await tgbot.sendMessage(tgMsg.chat.id, 'Nothing to do upon your message, ' + tgMsg.chat.id);
                 await tgbot.setMyCommands(Config.TGBotCommands);
