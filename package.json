@@ -1,8 +1,9 @@
 {
   "name": "tqbridgebot",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "dependencies": {
     "dayjs": "^1.11.7",
+    "file-box": "^1.4.15",
     "https-proxy-agent": "^7.0.0",
     "log4js": "^6.9.1",
     "mirai-js": "^2.8.11",
