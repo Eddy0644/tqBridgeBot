@@ -107,8 +107,8 @@ async function onTGMsg(tgMsg) {
                 tgLogger.debug(`Received wrong /mystat command usage. Skipping...`);
                 return;
             }
-            state.myStat=newStat;
-            const message=`Changed myStat into \`${newStat}\`!`;
+            state.myStat = newStat;
+            const message = `Changed myStat into \`${newStat}\`!`;
             defLogger.debug(message);
             const tgMsg = await tgBotDo.sendMessage(message, true, "MarkdownV2");
             state.poolToDelete.add(tgMsg, 8);
