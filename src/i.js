@@ -27,6 +27,8 @@ let state = {
     },
     // store TG messages which need to be revoked after a period of time
     poolToDelete: [],
+    autoRespond: [],
+    myStat: "normal"
 };
 state.poolToDelete.add = function (tgMsg, delay) {
     if (tgMsg !== null) {
@@ -98,6 +100,18 @@ async function onTGMsg(tgMsg) {
         } else if (tgMsg.text === "/clear") {
             tgLogger.trace(`Invoking softReboot by user operation...`);
             await softReboot("User triggered.");
+        } else if (tgMsg.text.indexOf("/mystat") === 0) {
+            const newStat = tgMsg.text.replace("/mystat", "");
+            if (newStat.length < 2) {
+                await tgBotDo.sendChatAction("record_voice");
+                tgLogger.debug(`Received wrong /mystat command usage. Skipping...`);
+                return;
+            }
+            state.myStat=newStat;
+            const message=`Changed myStat into \`${newStat}\`!`;
+            defLogger.debug(message);
+            const tgMsg = await tgBotDo.sendMessage(message, true, "MarkdownV2");
+            state.poolToDelete.add(tgMsg, 8);
         } else if (tgMsg.text === "/keyboard") {
             let form = {
                 reply_markup: JSON.stringify({
