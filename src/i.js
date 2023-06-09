@@ -108,10 +108,10 @@ async function onTGMsg(tgMsg) {
                 return;
             }
             state.myStat = newStat;
-            const message = `Changed myStat into \`${newStat}\`!`;
+            const message = `Changed myStat into \`${newStat}\`.`;
             defLogger.debug(message);
-            const tgMsg = await tgBotDo.sendMessage(message, true, "MarkdownV2");
-            state.poolToDelete.add(tgMsg, 8);
+            const tgMsg2 = await tgBotDo.sendMessage(message, true, "MarkdownV2");
+            state.poolToDelete.add(tgMsg2, 8);
         } else if (tgMsg.text === "/keyboard") {
             let form = {
                 reply_markup: JSON.stringify({
