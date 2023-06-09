@@ -110,6 +110,9 @@ async function onTGMsg(tgMsg) {
             state.myStat = newStat;
             const message = `Changed myStat into ${newStat}.`;
             defLogger.debug(message);
+
+            if (newStat === "normal") state.autoRespond = [];
+
             const tgMsg2 = await tgBotDo.sendMessage(message, true, "HTML");
             state.poolToDelete.add(tgMsg2, 8);
         } else if (tgMsg.text === "/keyboard") {
@@ -230,14 +233,16 @@ async function softReboot(reason) {
 async function onQQMsg(data) {
     try {
         let content = "", isGroup = false, deliverTemplate;
-        let name;
+        let name, nominalID;
         if (!data.sender.group) {
             deliverTemplate = `📨[<b>${data.sender.remark}</b>] `;
             name = data.sender.remark;
+            nominalID = data.sender.id;
         } else {
             isGroup = true;
             deliverTemplate = `📬[<b>${data.sender.memberName}</b> @ ${data.sender.group.name}] `;
             name = data.sender.memberName;
+            nominalID = data.sender.group.id;
         }
         let imagePool = [], shouldSpoiler = false;
         for (const msg of data.messageChain) {
@@ -257,18 +262,18 @@ async function onQQMsg(data) {
         }
         qqLogger.trace(`Got QQ message from: ${JSON.stringify(data.sender, null, 2)} Message Chain is: ${JSON.stringify(data.messageChain, null, 2)}`);
         let tgMsg;
-        if (secret.qqAutoRespond.allowList.includes(data.sender.id)) {
+        if (secret.qqAutoRespond.allowList.includes(nominalID)) {
             if (state.myStat !== "normal") {
                 // ready to auto respond
                 let asArr = null;
-                for (const pair in state.autoRespond) {
-                    if (pair.id === data.sender.id) {
+                for (const pair of state.autoRespond) {
+                    if (pair.id === nominalID) {
                         asArr = pair;
                     }
                 }
                 if (!asArr) {
                     asArr = {
-                        id: data.sender.id,
+                        id: nominalID,
                         stat: "init"
                     };
                     state.autoRespond.push(asArr);
