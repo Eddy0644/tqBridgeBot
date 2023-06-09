@@ -281,7 +281,7 @@ async function onQQMsg(data) {
                 }
                 if (asArr.stat === "init") {
                     // 'init' state
-                    const prompt = secret.qqAutoRespond.init_prompt(0);
+                    const prompt = secret.qqAutoRespond.prompt_init(0);
 
                     const sendData = {
                         message: new mrMessage().addText(prompt)
@@ -293,7 +293,7 @@ async function onQQMsg(data) {
                     asArr.stat = "ai";
                 } else if (asArr.stat === "ai") {
                     defLogger.trace(`Corresponding asArr headed for 'ai', preparing for AI response...`);
-                    let prompt = secret.qqAutoRespond.ai_prompt(content);
+                    let prompt = secret.qqAutoRespond.prompt_ai(content);
                     try {
                         const response = await fetch(secret.aiAssistance.url, {
                             method: 'POST',
