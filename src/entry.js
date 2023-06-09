@@ -1,11 +1,9 @@
 //#noinspection JSUnresolvedVariable
-
 const dayjs = require('dayjs');
 const {Bot: MiraiBot, Message: mrMessage, Middleware} = require('mirai-js');
 const secret = require('../config/secret');
 // const userConf = require('../config/userconf');
 const {qqLogger, tgLogger, defLogger} = require('./logger')('startup');
-const FileBox = require("file-box").FileBox;
 const {tgbot, tgBotDo} = require('./tgbot-pre');
 const {STypes, Config, coProcessor, uploadFileToUpyun} = require('./common');
 
@@ -30,7 +28,8 @@ const env = {
     state, tgBotDo, tgLogger, defLogger, qqLogger, secret, qqBot
 };
 const mod = {
-    autoRespond: require('./autoResponder')(env)
+    autoRespond: require('./autoResponder')(env),
+    upyunMiddleware: require('./upyunMiddleware')(env),
 }
 
 state.poolToDelete.add = function (tgMsg, delay) {
@@ -314,11 +313,7 @@ async function deliverTGMediaToQQ(tgMsg, tg_media, media_type) {
     await tgBotDo.downFromCloud(fileCloudPath, local_path);
     if (tgMsg.sticker) {
         tgLogger.trace(`Invoking TG sticker pre-process...`);
-        const uploadResult = await uploadFileToUpyun(local_path.replace('./downloaded/stickerTG/', ''), secret.upyun);
-        if (uploadResult.ok) {
-            await FileBox.fromUrl(uploadResult.filePath + '!/format/jpg').toFile(`./downloaded/stickerTG/${rand1}.jpg`);
-            local_path = local_path.replace('.webp', '.jpg');
-        } else tgLogger.warn(`Error on sticker pre-process:\n\t${uploadResult.msg}`);
+        local_path = await mod.upyunMiddleware.webpToJpg(local_path, rand1);
     }
     const {imageId, url, path} = await qqBot.uploadImage({filename: local_path});
     await tgBotDo.sendChatAction("record_video");
