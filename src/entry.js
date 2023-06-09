@@ -8,13 +8,11 @@ const {qqLogger, tgLogger, defLogger} = require('./logger')('startup');
 const FileBox = require("file-box").FileBox;
 const {tgbot, tgBotDo} = require('./tgbot-pre');
 const {STypes, Config, coProcessor, uploadFileToUpyun} = require('./common');
-const fs = require("fs");
-const agentEr = require("https-proxy-agent");
 
 const qqBot = new MiraiBot();
 const state = {
     last: {},
-    lastExplicitTalker: null,
+    // lastExplicitTalker: null,
     lockTarget: 0,
     prePerson: {
         tgMsg: null,
@@ -27,7 +25,6 @@ const state = {
     myStat: "normal"
 };
 
-// TODO preparation for separating files into individuals
 // Loading instance modules...
 const env = {
     state, tgBotDo, tgLogger, defLogger, qqLogger, secret, qqBot
@@ -280,7 +277,6 @@ async function onQQMsg(qdata) {
                 if (msgMergeFailCount < 0) await softReboot("merging message failure reaches threshold.");
             }
 
-
             tgMsg = await tgBotDo.sendMessage(deliverTemplate + content, false, "HTML");
             if (!isGroup && qdata.prePersonNeedUpdate) {
                 state.prePerson.pers_id = qdata.sender.id;
@@ -315,7 +311,7 @@ async function deliverTGMediaToQQ(tgMsg, tg_media, media_type) {
     const action = `upload_${media_type}`;
     await tgBotDo.sendChatAction(action);
     tgLogger.trace(`file_path is ${local_path}.`);
-    await downloadHttpsWithProxy(`https://api.telegram.org/file/bot${secret.tgCredential.token}/${fileCloudPath}`, local_path);
+    await tgBotDo.downFromCloud(fileCloudPath, local_path);
     if (tgMsg.sticker) {
         tgLogger.trace(`Invoking TG sticker pre-process...`);
         const uploadResult = await uploadFileToUpyun(local_path.replace('./downloaded/stickerTG/', ''), secret.upyun);
@@ -336,23 +332,6 @@ async function deliverTGMediaToQQ(tgMsg, tg_media, media_type) {
     defLogger.debug(`Handled a (${action}) message send-back to speculative talker:${state.last.isGroup ? state.last.target.group.name : state.last.target.nickname}.`);
     await tgBotDo.sendChatAction("choose_sticker");
     return true;
-}
-
-async function downloadHttpsWithProxy(url, pathName) {
-    return new Promise((resolve, reject) => {
-        const file = fs.createWriteStream(pathName);
-        const agent = new agentEr.HttpsProxyAgent(require("../proxy"));
-        require('https').get(url, {agent: agent}, (response) => {
-            response.pipe(file);
-            file.on('finish', () => {
-                file.close();
-                resolve("SUCCESS");
-            });
-        }).on('error', (error) => {
-            fs.unlink(pathName, () => reject(error));
-        });
-    });
-
 }
 
 async function main() {
