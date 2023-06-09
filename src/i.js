@@ -1,4 +1,5 @@
 //#noinspection JSUnresolvedVariable
+const fetch = require('node-fetch');
 const dayjs = require('dayjs');
 const {Bot: MiraiBot, Message: mrMessage, Middleware} = require('mirai-js');
 const secret = require('../config/secret');
@@ -292,6 +293,28 @@ async function onQQMsg(data) {
                     asArr.stat = "ai";
                 } else if (asArr.stat === "ai") {
                     console.info(`111111111111111111111111`);
+                    let prompt = secret.qqAutoRespond.ai_prompt(content);
+                    try {
+                        const response = await fetch(secret.aiAssistance.url, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'text/plain'
+                            },
+                            body: prompt
+                        });
+                        const responseData = await response.text();
+                        console.log(responseData); // Output the response text
+
+                        const sendData = {
+                            message: new mrMessage().addText(responseData)
+                        };
+                        if (isGroup) sendData.group = data.sender.group.id;
+                        else sendData.friend = data.sender.id;
+                        await qqBot.sendMessage(sendData);
+
+                    } catch (error) {
+                        console.error('Error:', error);
+                    }
                 }
             }
         }
