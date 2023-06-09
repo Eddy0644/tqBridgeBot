@@ -26,10 +26,16 @@ const state = {
     autoRespond: [],
     myStat: "normal"
 };
+
 // TODO preparation for separating files into individuals
+// Loading instance modules...
 const env = {
     state, tgBotDo, tgLogger, defLogger, qqLogger
 };
+const mod = {
+    autoRespond: require('./autoResponder')(env)
+}
+
 state.poolToDelete.add = function (tgMsg, delay) {
     if (tgMsg !== null) {
         tgLogger.debug(`Added message #${tgMsg.message_id} to poolToDelete with timer (${delay})sec.`);
@@ -101,20 +107,8 @@ async function onTGMsg(tgMsg) {
             tgLogger.trace(`Invoking softReboot by user operation...`);
             await softReboot("User triggered.");
         } else if (tgMsg.text.indexOf("/mystat") === 0) {
-            const newStat = tgMsg.text.replace("/mystat", "");
-            if (newStat.length < 2) {
-                await tgBotDo.sendChatAction("record_voice");
-                tgLogger.debug(`Received wrong /mystat command usage. Skipping...`);
-                return;
-            }
-            state.myStat = newStat;
-            const message = `Changed myStat into ${newStat}.`;
-            defLogger.debug(message);
+            await mod.autoRespond.changeMyStat(tgMsg.text.replace("/mystat", ""));
 
-            if (newStat === "normal") state.autoRespond = [];
-
-            const tgMsg2 = await tgBotDo.sendMessage(message, true, "HTML");
-            state.poolToDelete.add(tgMsg2, 8);
         } else if (tgMsg.text.indexOf("F$") === 0 || tgMsg.text.indexOf("/f") === 0) {
             // Want to find somebody, and have inline parameters
             let isGroup = (tgMsg.text.indexOf("/fg") === 0);
@@ -174,6 +168,8 @@ async function onTGMsg(tgMsg) {
                             res = {group: {id: targetQQ, name: targetQQ}};
                         }
                         defLogger.debug(content);
+                        // TODO force override of message content but need a fix
+                        tgMsg.text = tgMsg.text.replace(match[0], "");
                         addToMsgMappings(tgMsg.message_id, res, null, isGroup, true);
                         // left empty here, to continue forward message to talker and reuse the code
                     } else defLogger.trace(`Message have inline search, but no match in nameAliases pair.`);
