@@ -1,7 +1,10 @@
 const secret = require('../config/secret');
 const {tgLogger} = require('./logger')();
-const userConf = require('../config/userconf');
+// const userConf = require('../config/userconf');
 const TelegramBot = require("node-telegram-bot-api");
+const fs = require("fs");
+const https = require("https");
+const agentEr = require("https-proxy-agent");
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const isPolling = (!(process.argv.length >= 3 && process.argv[2] === "hook"));
 process.env["NTBA_FIX_350"] = "1";
@@ -34,64 +37,83 @@ tgbot.on('polling_error', async (e) => {
 tgbot.on('webhook_error', async (e) => {
     tgLogger.warn("Webhook - " + e.message.replace("Error: ", ""));
 });
-module.exports = {
-    tgbot: tgbot,
-    tgBotDo: {
-        sendMessage: async (msg, isSilent = false, parseMode = null, form = {}) => {
-            await delay(100);
-            if (secret.target.tgDefThreadID) form.message_thread_id = secret.target.tgDefThreadID;
-            if (isSilent) form.disable_notification = true;
-            if (parseMode) form.parse_mode = parseMode;
-            return tgbot.sendMessage(secret.target.tgID, msg, form).catch((e) => tgLogger.warn(e.toString()));
-        },
-        sendChatAction: async (action) => {
-            await delay(100);
-            return await tgbot.sendChatAction(secret.target.tgID, action,
-                secret.target.tgDefThreadID ? {message_thread_id: secret.target.tgDefThreadID} : {}
-            ).catch((e) => {
-                tgLogger.warn(e.toString());
+const tgBotDo = {
+    sendMessage: async (msg, isSilent = false, parseMode = null, form = {}) => {
+        await delay(100);
+        if (secret.target.tgDefThreadID) form.message_thread_id = secret.target.tgDefThreadID;
+        if (isSilent) form.disable_notification = true;
+        if (parseMode) form.parse_mode = parseMode;
+        return tgbot.sendMessage(secret.target.tgID, msg, form).catch((e) => tgLogger.warn(e.toString()));
+    },
+    sendChatAction: async (action) => {
+        await delay(100);
+        return await tgbot.sendChatAction(secret.target.tgID, action,
+            secret.target.tgDefThreadID ? {message_thread_id: secret.target.tgDefThreadID} : {}
+        ).catch((e) => {
+            tgLogger.warn(e.toString());
+        });
+    },
+    revokeMessage: async (msgId) => {
+        await delay(100);
+        return await tgbot.deleteMessage(secret.target.tgID, msgId).catch((e) => {
+            tgLogger.warn(e.toString());
+        });
+    },
+    sendPhoto: async (caption, path, isSilent = false, hasSpoiler = false) => {
+        await delay(100);
+        let form = {
+            caption: caption,
+            has_spoiler: hasSpoiler,
+            width: 100,
+            height: 100,
+            parse_mode: "HTML",
+        };
+        if (secret.target.tgDefThreadID) form.message_thread_id = secret.target.tgDefThreadID;
+        if (isSilent) form.disable_notification = true;
+        return await tgbot.sendPhoto(secret.target.tgID, path, form, {contentType: 'image/jpeg'}).catch((e) => tgLogger.warn(e.toString()));
+    },
+    sendMediaGroup: async (caption, arr, isSilent = false, hasSpoiler = false) => {
+        await delay(100);
+        let form = {
+            caption: caption,
+            has_spoiler: hasSpoiler,
+            width: 100,
+            height: 100,
+            parse_mode: "HTML",
+        };
+        if (secret.target.tgDefThreadID) form.message_thread_id = secret.target.tgDefThreadID;
+        if (isSilent) form.disable_notification = true;
+        return await tgbot.sendMediaGroup(secret.target.tgID, arr, form, {contentType: 'image/jpeg'}).catch((e) => tgLogger.warn(e.toString()));
+    },
+    editMessageText: async (text, formerMsg) => {
+        // await delay(100);
+        let form = {
+            chat_id: secret.target.tgID,
+            message_id: formerMsg.message_id,
+            parse_mode: "HTML"
+        };
+        return await tgbot.editMessageText(text, form).catch((e) => tgLogger.warn(e.toString()));
+    },
+
+
+    downFromCloud: async function (fileCloudPath, pathName) {
+        return new Promise((resolve, reject) => {
+            const file = fs.createWriteStream(pathName);
+            const agent = new agentEr.HttpsProxyAgent(require("../proxy"));
+            https.get(`https://api.telegram.org/file/bot${secret.tgCredential.token}/${fileCloudPath}`, {agent: agent}, (response) => {
+                response.pipe(file);
+                file.on('finish', () => {
+                    file.close();
+                    resolve("SUCCESS");
+                });
+            }).on('error', (error) => {
+                fs.unlink(pathName, () => reject(error));
             });
-        },
-        revokeMessage: async (msgId) => {
-            await delay(100);
-            return await tgbot.deleteMessage(secret.target.tgID, msgId).catch((e) => {
-                tgLogger.warn(e.toString());
-            });
-        },
-        sendPhoto: async (caption, path, isSilent = false, hasSpoiler = false) => {
-            await delay(100);
-            let form = {
-                caption: caption,
-                has_spoiler: hasSpoiler,
-                width: 100,
-                height: 100,
-                parse_mode: "HTML",
-            };
-            if (secret.target.tgDefThreadID) form.message_thread_id = secret.target.tgDefThreadID;
-            if (isSilent) form.disable_notification = true;
-            return await tgbot.sendPhoto(secret.target.tgID, path, form, {contentType: 'image/jpeg'}).catch((e) => tgLogger.warn(e.toString()));
-        },
-        sendMediaGroup: async (caption, arr, isSilent = false, hasSpoiler = false) => {
-            await delay(100);
-            let form = {
-                caption: caption,
-                has_spoiler: hasSpoiler,
-                width: 100,
-                height: 100,
-                parse_mode: "HTML",
-            };
-            if (secret.target.tgDefThreadID) form.message_thread_id = secret.target.tgDefThreadID;
-            if (isSilent) form.disable_notification = true;
-            return await tgbot.sendMediaGroup(secret.target.tgID, arr, form, {contentType: 'image/jpeg'}).catch((e) => tgLogger.warn(e.toString()));
-        },
-        editMessageText: async (text, formerMsg) => {
-            // await delay(100);
-            let form = {
-                chat_id: secret.target.tgID,
-                message_id: formerMsg.message_id,
-                parse_mode: "HTML"
-            };
-            return await tgbot.editMessageText(text, form).catch((e) => tgLogger.warn(e.toString()));
-        },
+        });
+
     }
+}
+module.exports = {
+    tgbot,
+    tgBotDo,
 }

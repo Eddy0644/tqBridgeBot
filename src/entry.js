@@ -1,5 +1,5 @@
 //#noinspection JSUnresolvedVariable
-const fetch = require('node-fetch');
+
 const dayjs = require('dayjs');
 const {Bot: MiraiBot, Message: mrMessage, Middleware} = require('mirai-js');
 const secret = require('../config/secret');
@@ -30,7 +30,7 @@ const state = {
 // TODO preparation for separating files into individuals
 // Loading instance modules...
 const env = {
-    state, tgBotDo, tgLogger, defLogger, qqLogger
+    state, tgBotDo, tgLogger, defLogger, qqLogger, secret, qqBot
 };
 const mod = {
     autoRespond: require('./autoResponder')(env)
@@ -106,6 +106,7 @@ async function onTGMsg(tgMsg) {
         } else if (tgMsg.text === "/clear") {
             tgLogger.trace(`Invoking softReboot by user operation...`);
             await softReboot("User triggered.");
+
         } else if (tgMsg.text.indexOf("/mystat") === 0) {
             await mod.autoRespond.changeMyStat(tgMsg.text.replace("/mystat", ""));
 
@@ -214,22 +215,22 @@ async function softReboot(reason) {
     state.poolToDelete.add(tgMsg, userDo ? 6 : 25);
 }
 
-async function onQQMsg(data) {
+async function onQQMsg(qdata) {
     try {
         let content = "", isGroup = false, deliverTemplate;
         let name, nominalID;
-        if (!data.sender.group) {
-            deliverTemplate = `📨[<b>${data.sender.remark}</b>] `;
-            name = data.sender.remark;
-            nominalID = data.sender.id;
+        if (!qdata.sender.group) {
+            deliverTemplate = `📨[<b>${qdata.sender.remark}</b>] `;
+            name = qdata.sender.remark;
+            nominalID = qdata.sender.id;
         } else {
             isGroup = true;
-            deliverTemplate = `📬[<b>${data.sender.memberName}</b> @ ${data.sender.group.name}] `;
-            name = data.sender.memberName;
-            nominalID = data.sender.group.id;
+            deliverTemplate = `📬[<b>${qdata.sender.memberName}</b> @ ${qdata.sender.group.name}] `;
+            name = qdata.sender.memberName;
+            nominalID = qdata.sender.group.id;
         }
         let imagePool = [], shouldSpoiler = false;
-        for (const msg of data.messageChain) {
+        for (const msg of qdata.messageChain) {
             if (msg.type === "Source") continue;
             if (msg.type === "Plain") content += msg.text + ` `;
             if (msg.type === "Image") {
@@ -244,68 +245,18 @@ async function onQQMsg(data) {
             }
             if (msg.type === "Face") content += `[${msg.faceId}/${msg.name}]`;
         }
-        qqLogger.trace(`Got QQ message from: ${JSON.stringify(data.sender, null, 2)} Message Chain is: ${JSON.stringify(data.messageChain, null, 2)}`);
+        qqLogger.trace(`Got QQ message from: ${JSON.stringify(qdata.sender, null, 2)} Message Chain is: ${JSON.stringify(qdata.messageChain, null, 2)}`);
         let tgMsg;
-        if (secret.qqAutoRespond.allowList.includes(nominalID)) {
-            if (state.myStat !== "normal") {
-                // ready to auto respond
-                let asArr = null;
-                for (const pair of state.autoRespond) {
-                    if (pair.id === nominalID) {
-                        asArr = pair;
-                    }
-                }
-                if (!asArr) {
-                    asArr = {
-                        id: nominalID,
-                        stat: "init"
-                    };
-                    state.autoRespond.push(asArr);
-                }
-                if (asArr.stat === "init") {
-                    // 'init' state
-                    const prompt = secret.qqAutoRespond.prompt_init(0);
-
-                    const sendData = {
-                        message: new mrMessage().addText(prompt)
-                    };
-                    if (isGroup) sendData.group = data.sender.group.id;
-                    else sendData.friend = data.sender.id;
-                    await qqBot.sendMessage(sendData);
-
-                    asArr.stat = "ai";
-                } else if (asArr.stat === "ai") {
-                    defLogger.trace(`Corresponding asArr headed for 'ai', preparing for AI response...`);
-                    let prompt = secret.qqAutoRespond.prompt_ai(content);
-                    try {
-                        const response = await fetch(secret.aiAssistance.url, {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'text/plain'
-                            },
-                            body: prompt
-                        });
-                        const responseData = await response.text();
-                        defLogger.debug(`Sending back AI response: {${responseData}`);
-                        const sendData = {
-                            message: new mrMessage().addText(responseData)
-                        };
-                        if (isGroup) sendData.group = data.sender.group.id;
-                        else sendData.friend = data.sender.id;
-                        await qqBot.sendMessage(sendData);
-
-                    } catch (error) {
-                        defLogger.warn('On AIAssistance:', error);
-                    }
-                }
-            }
+        qdata.processed = content;
+        if (mod.autoRespond.needAutoRespond(nominalID)) {
+            await mod.autoRespond.doAutoRespond(nominalID, qdata, isGroup);
         }
         if (imagePool.length === 0) {
             try {
-                if (!isGroup && coProcessor.isPreStateValid(state.prePerson, data.sender.id)) {
+                if (!isGroup && coProcessor.isPreStateValid(state.prePerson, qdata.sender.id)) {
                     //TODO: add template string separately!!!
                     const _ = state.prePerson;
-                    data.prePersonNeedUpdate = false;
+                    qdata.prePersonNeedUpdate = false;
                     // from same person, ready to merge
                     // noinspection JSObjectNullOrUndefined
                     if (_.firstWord === "") {
@@ -322,7 +273,7 @@ async function onQQMsg(data) {
                         defLogger.debug(`Delivered new message "${content}" from Person: ${name} into first message.`);
                         return;
                     }
-                } else data.prePersonNeedUpdate = true;
+                } else qdata.prePersonNeedUpdate = true;
             } catch (e) {
                 qqLogger.info(`Error occurred while merging room msg into older TG msg. Falling back to normal way.\n\t${e.toString()}\n\t${JSON.stringify(state.preRoom)}`);
                 msgMergeFailCount--;
@@ -331,14 +282,14 @@ async function onQQMsg(data) {
 
 
             tgMsg = await tgBotDo.sendMessage(deliverTemplate + content, false, "HTML");
-            if (!isGroup && data.prePersonNeedUpdate) {
-                state.prePerson.pers_id = data.sender.id;
+            if (!isGroup && qdata.prePersonNeedUpdate) {
+                state.prePerson.pers_id = qdata.sender.id;
                 state.prePerson.tgMsg = tgMsg;
                 state.prePerson.firstWord = `[${dayjs().format("H:mm:ss")}] ${content}`;
             }
         } else if (imagePool.length === 1) tgMsg = await tgBotDo.sendPhoto(deliverTemplate + content, imagePool[0], false, shouldSpoiler);
         // else tgMsg = await tgBotDo.sendMediaGroup(content, imagePool, false, false);
-        addToMsgMappings(tgMsg.message_id, data.sender, data.messageChain, isGroup);
+        addToMsgMappings(tgMsg.message_id, qdata.sender, qdata.messageChain, isGroup);
     } catch (e) {
         qqLogger.warn(`Error occurred while handling QQ message:\n\t${e}`);
     }

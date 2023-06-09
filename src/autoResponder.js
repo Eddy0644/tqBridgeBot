@@ -1,8 +1,62 @@
-// const {tgBotDo} = require("./tgbot-pre");
+const secret = require("../config/secret");
+const {Message: mrMessage} = require("mirai-js");
+const fetch = require("node-fetch");
 let env;
 
-function test() {
-    return env.a;
+async function doAutoRespond(nominalID, qdata, isGroup) {
+    const {state, defLogger, qqBot} = env;
+    if (state.myStat !== "normal") {
+        // ready to auto respond
+        let asArr = null;
+        for (const pair of state.autoRespond) {
+            if (pair.id === nominalID) {
+                asArr = pair;
+            }
+        }
+        if (!asArr) {
+            asArr = {
+                id: nominalID,
+                stat: "init"
+            };
+            state.autoRespond.push(asArr);
+        }
+        if (asArr.stat === "init") {
+            // 'init' state
+            const prompt = secret.qqAutoRespond.prompt_init(0);
+
+            const sendData = {
+                message: new mrMessage().addText(prompt)
+            };
+            if (isGroup) sendData.group = qdata.sender.group.id;
+            else sendData.friend = qdata.sender.id;
+            await qqBot.sendMessage(sendData);
+
+            asArr.stat = "ai";
+        } else if (asArr.stat === "ai") {
+            defLogger.trace(`Corresponding asArr headed for 'ai', preparing for AI response...`);
+            let prompt = secret.qqAutoRespond.prompt_ai(qdata.processed);
+            try {
+                const response = await fetch(secret.aiAssistance.url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'text/plain'
+                    },
+                    body: prompt
+                });
+                const responseData = await response.text();
+                defLogger.debug(`Sending back AI response: {${responseData}`);
+                const sendData = {
+                    message: new mrMessage().addText(responseData)
+                };
+                if (isGroup) sendData.group = qdata.sender.group.id;
+                else sendData.friend = qdata.sender.id;
+                await qqBot.sendMessage(sendData);
+
+            } catch (error) {
+                defLogger.warn('On AIAssistance:', error);
+            }
+        }
+    }
 }
 
 async function changeMyStat(newStat = "normal") {
@@ -24,9 +78,13 @@ async function changeMyStat(newStat = "normal") {
     return tgMsg2;
 }
 
+function needAutoRespond(nominalID) {
+    return env.secret.qqAutoRespond.allowList.includes(nominalID);
+}
+
 module.exports = (incomingEnv) => {
     env = incomingEnv;
     return {
-        test, changeMyStat
+        changeMyStat, needAutoRespond, doAutoRespond
     };
 };
