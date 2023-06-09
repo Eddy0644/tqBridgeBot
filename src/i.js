@@ -108,9 +108,9 @@ async function onTGMsg(tgMsg) {
                 return;
             }
             state.myStat = newStat;
-            const message = `Changed myStat into \`${newStat}\`.`;
+            const message = `Changed myStat into ${newStat}.`;
             defLogger.debug(message);
-            const tgMsg2 = await tgBotDo.sendMessage(message, true, "MarkdownV2");
+            const tgMsg2 = await tgBotDo.sendMessage(message, true, "HTML");
             state.poolToDelete.add(tgMsg2, 8);
         } else if (tgMsg.text === "/keyboard") {
             let form = {
@@ -266,13 +266,27 @@ async function onQQMsg(data) {
                         asArr = pair;
                     }
                 }
-                if (!asArr) asArr = {
-                    stat: "init"
+                if (!asArr) {
+                    asArr = {
+                        id: data.sender.id,
+                        stat: "init"
+                    };
+                    state.autoRespond.push(asArr);
                 }
                 if (asArr.stat === "init") {
                     // 'init' state
-                    const prompt=secret.qqAutoRespond.init_prompt(0);
+                    const prompt = secret.qqAutoRespond.init_prompt(0);
 
+                    const sendData = {
+                        message: new mrMessage().addText(prompt)
+                    };
+                    if (isGroup) sendData.group = data.sender.group.id;
+                    else sendData.friend = data.sender.id;
+                    await qqBot.sendMessage(sendData);
+
+                    asArr.stat = "ai";
+                } else if (asArr.stat === "ai") {
+                    console.info(`111111111111111111111111`);
                 }
             }
         }
