@@ -257,6 +257,25 @@ async function onQQMsg(data) {
         }
         qqLogger.trace(`Got QQ message from: ${JSON.stringify(data.sender, null, 2)} Message Chain is: ${JSON.stringify(data.messageChain, null, 2)}`);
         let tgMsg;
+        if (secret.qqAutoRespond.allowList.includes(data.sender.id)) {
+            if (state.myStat !== "normal") {
+                // ready to auto respond
+                let asArr = null;
+                for (const pair in state.autoRespond) {
+                    if (pair.id === data.sender.id) {
+                        asArr = pair;
+                    }
+                }
+                if (!asArr) asArr = {
+                    stat: "init"
+                }
+                if (asArr.stat === "init") {
+                    // 'init' state
+                    const prompt=secret.qqAutoRespond.init_prompt(0);
+
+                }
+            }
+        }
         if (imagePool.length === 0) {
             try {
                 if (!isGroup && coProcessor.isPreStateValid(state.prePerson, data.sender.id)) {
