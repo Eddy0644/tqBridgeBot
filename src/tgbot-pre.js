@@ -28,7 +28,12 @@ if (isPolling) {
     });
     tgbot.openWebHook();
 }
-
+tgbot.on('polling_error', async (e) => {
+    tgLogger.warn("Polling - " + e.message.replace("Error: ", ""));
+});
+tgbot.on('webhook_error', async (e) => {
+    tgLogger.warn("Webhook - " + e.message.replace("Error: ", ""));
+});
 module.exports = {
     tgbot: tgbot,
     tgBotDo: {

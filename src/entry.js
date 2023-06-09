@@ -10,14 +10,9 @@ const {tgbot, tgBotDo} = require('./tgbot-pre');
 const {STypes, Config, coProcessor, uploadFileToUpyun} = require('./common');
 const fs = require("fs");
 const agentEr = require("https-proxy-agent");
-tgbot.on('polling_error', async (e) => {
-    tgLogger.warn("Polling - " + e.message.replace("Error: ", ""));
-});
-tgbot.on('webhook_error', async (e) => {
-    tgLogger.warn("Webhook - " + e.message.replace("Error: ", ""));
-});
+
 const qqBot = new MiraiBot();
-let state = {
+const state = {
     last: {},
     lastExplicitTalker: null,
     lockTarget: 0,
@@ -30,6 +25,10 @@ let state = {
     poolToDelete: [],
     autoRespond: [],
     myStat: "normal"
+};
+// TODO preparation for separating files into individuals
+const env = {
+    state, tgBotDo, tgLogger, defLogger, qqLogger
 };
 state.poolToDelete.add = function (tgMsg, delay) {
     if (tgMsg !== null) {
@@ -116,18 +115,6 @@ async function onTGMsg(tgMsg) {
 
             const tgMsg2 = await tgBotDo.sendMessage(message, true, "HTML");
             state.poolToDelete.add(tgMsg2, 8);
-        } else if (tgMsg.text === "/keyboard") {
-            let form = {
-                reply_markup: JSON.stringify({
-                    keyboard: secret.tgConf.quickKeyboard,
-                    is_persistent: true,
-                    resize_keyboard: true,
-                    one_time_keyboard: false
-                })
-            };
-            const tgMsg = await tgBotDo.sendMessage('Already set quickKeyboard! ', true, null, form);
-            await tgbot.setMyCommands(Config.TGBotCommands);
-            state.poolToDelete.add(tgMsg, 6);
         } else if (tgMsg.text.indexOf("F$") === 0 || tgMsg.text.indexOf("/f") === 0) {
             // Want to find somebody, and have inline parameters
             let isGroup = (tgMsg.text.indexOf("/fg") === 0);
