@@ -292,7 +292,7 @@ async function onQQMsg(data) {
 
                     asArr.stat = "ai";
                 } else if (asArr.stat === "ai") {
-                    console.info(`111111111111111111111111`);
+                    defLogger.trace(`Corresponding asArr headed for 'ai', preparing for AI response...`);
                     let prompt = secret.qqAutoRespond.ai_prompt(content);
                     try {
                         const response = await fetch(secret.aiAssistance.url, {
@@ -303,8 +303,7 @@ async function onQQMsg(data) {
                             body: prompt
                         });
                         const responseData = await response.text();
-                        console.log(responseData); // Output the response text
-
+                        defLogger.debug(`Sending back AI response: {${responseData}`);
                         const sendData = {
                             message: new mrMessage().addText(responseData)
                         };
@@ -313,7 +312,7 @@ async function onQQMsg(data) {
                         await qqBot.sendMessage(sendData);
 
                     } catch (error) {
-                        console.error('Error:', error);
+                        defLogger.warn('On AIAssistance:', error);
                     }
                 }
             }
