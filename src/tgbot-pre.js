@@ -70,7 +70,20 @@ const tgBotDo = {
         };
         if (secret.target.tgDefThreadID) form.message_thread_id = secret.target.tgDefThreadID;
         if (isSilent) form.disable_notification = true;
-        return await tgbot.sendPhoto(secret.target.tgID, path, form, {contentType: 'image/jpeg'}).catch((e) => tgLogger.warn(e.toString()));
+        return await tgbot.sendPhoto(secret.target.tgID, path, form, {contentType: 'image/gif'}).catch((e) => tgLogger.warn(e.toString()));
+    },
+    sendAnimation: async (caption, path, isSilent = false, hasSpoiler = false) => {
+        await delay(100);
+        let form = {
+            caption: caption,
+            has_spoiler: hasSpoiler,
+            width: 100,
+            height: 100,
+            parse_mode: "HTML",
+        };
+        if (secret.target.tgDefThreadID) form.message_thread_id = secret.target.tgDefThreadID;
+        if (isSilent) form.disable_notification = true;
+        return await tgbot.sendAnimation(secret.target.tgID, path, form, {contentType: 'image/gif'}).catch((e) => tgLogger.warn(e.toString()));
     },
     sendMediaGroup: async (caption, arr, isSilent = false, hasSpoiler = false) => {
         await delay(100);

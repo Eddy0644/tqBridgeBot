@@ -5,7 +5,7 @@ const secret = require('../config/secret');
 // const userConf = require('../config/userconf');
 const {qqLogger, tgLogger, defLogger} = require('./logger')('startup');
 const {tgbot, tgBotDo} = require('./tgbot-pre');
-const {STypes, Config, coProcessor, uploadFileToUpyun} = require('./common');
+const {STypes, Config, coProcessor} = require('./common');
 
 const qqBot = new MiraiBot();
 const state = {
@@ -282,7 +282,7 @@ async function onQQMsg(qdata) {
                 state.prePerson.tgMsg = tgMsg;
                 state.prePerson.firstWord = `[${dayjs().format("H:mm:ss")}] ${content}`;
             }
-        } else if (imagePool.length === 1) tgMsg = await tgBotDo.sendPhoto(deliverTemplate + content, imagePool[0], false, shouldSpoiler);
+        } else if (imagePool.length === 1) tgMsg = await (shouldSpoiler ? tgBotDo.sendAnimation : tgBotDo.sendPhoto)(deliverTemplate + content, imagePool[0], false, shouldSpoiler);
         // else tgMsg = await tgBotDo.sendMediaGroup(content, imagePool, false, false);
         addToMsgMappings(tgMsg.message_id, qdata.sender, qdata.messageChain, isGroup);
     } catch (e) {
@@ -315,7 +315,8 @@ async function deliverTGMediaToQQ(tgMsg, tg_media, media_type) {
         tgLogger.trace(`Invoking TG sticker pre-process...`);
         local_path = await mod.upyunMiddleware.webpToJpg(local_path, rand1);
     }
-    const {imageId, url, path} = await qqBot.uploadImage({filename: local_path});
+    // const {imageId, url, path}
+    const {url} = await qqBot.uploadImage({filename: local_path});
     await tgBotDo.sendChatAction("record_video");
     const sendData = {
         message: new mrMessage().addText(tgMsg.caption ? tgMsg.caption : "")
