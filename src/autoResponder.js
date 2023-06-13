@@ -29,7 +29,7 @@ async function doAutoRespond(nominalID, qdata, isGroup) {
         }
         if (asArr.stat === "init") {
             // 'init' state
-            const prompt = secret.qqAutoRespond.prompt_init(0);
+            const prompt = secret.qqAutoRespond.init_response(0);
 
             const sendData = {
                 message: new mrMessage().addText(prompt)
@@ -41,19 +41,20 @@ async function doAutoRespond(nominalID, qdata, isGroup) {
             asArr.stat = "ai";
         } else if (asArr.stat === "ai") {
             defLogger.trace(`Corresponding asArr headed for 'ai', preparing for AI response...`);
-            let prompt = secret.qqAutoRespond.prompt_ai(qdata.processed);
+            let prompt = secret.qqAutoRespond.ai_prompt(qdata.processed);
             try {
-                const response = await fetch(secret.aiAssistance.url, {
+                const res = await fetch(secret.aiAssistance.url, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'text/plain'
                     },
                     body: prompt
                 });
-                const responseData = await response.text();
-                defLogger.debug(`Sending back AI response: {${responseData}`);
+                const responseRaw = await res.text();
+                const response = secret.qqAutoRespond.ai_response(responseRaw);
+                defLogger.debug(`Sending back AI response: {${responseRaw}`);
                 const sendData = {
-                    message: new mrMessage().addText(responseData)
+                    message: new mrMessage().addText(response)
                 };
                 if (isGroup) sendData.group = qdata.sender.group.id;
                 else sendData.friend = qdata.sender.id;
