@@ -1,3 +1,5 @@
+// noinspection JSUnreachableSwitchBranches
+
 const dayjs = require("dayjs");
 let env;
 
@@ -30,6 +32,10 @@ function handleForwardMessage(nodeList, indent = 1) {
                 break;
             case "Face":
                 content += `[${msg.faceId}/${msg.name}]`;
+                break;
+            case "Forward":
+            case "ForwardMessage":
+                content += handleForwardMessage(msg.nodeList, indent + 1);
                 break;
             default:
                 qqLogger.debug(`Unparsed MessageType: (${msg.type}) In a ForwardMessage. Ignored.`);

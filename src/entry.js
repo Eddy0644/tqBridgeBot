@@ -1,4 +1,6 @@
 //#noinspection JSUnresolvedVariable
+// noinspection JSUnreachableSwitchBranches
+
 const dayjs = require('dayjs');
 const {Bot: MiraiBot, Message: mrMessage, Middleware} = require('mirai-js');
 const secret = require('../config/secret');
@@ -227,50 +229,49 @@ async function onQQMsg(qdata) {
             nominalID = qdata.sender.group.id;
         }
         let imagePool = [], shouldSpoiler = false;
-        for (const msg of qdata.messageChain) { // noinspection JSUnreachableSwitchBranches
-            switch (msg.type) {
-                case "Source":
-                    continue;
-                case "Plain":
-                    content += msg.text + ` `;
-                    break;
-                case "Image": {
-                    //TODO: sendMediaGroup with URLs is unimplemented now, using this method temporary
-                    if (imagePool.length === 0) {
-                        if (msg.isEmoji) shouldSpoiler = true;
-                        content += `[${msg.isEmoji ? "CuEmo" : "Image"}] `;
-                        imagePool.push(msg.url);
-                    } else {
-                        content += `[<a href="${msg.url}">${msg.isEmoji ? "CuEmo" : "Image"}</a>] `;
-                    }
+        for (const msg of qdata.messageChain) switch (msg.type) {
+            case "Source":
+                continue;
+            case "Plain":
+                content += msg.text + ` `;
+                break;
+            case "Image": {
+                //TODO: sendMediaGroup with URLs is unimplemented now, using this method temporary
+                if (imagePool.length === 0) {
+                    if (msg.isEmoji) shouldSpoiler = true;
+                    content += `[${msg.isEmoji ? "CuEmo" : "Image"}] `;
+                    imagePool.push(msg.url);
+                } else {
+                    content += `[<a href="${msg.url}">${msg.isEmoji ? "CuEmo" : "Image"}</a>] `;
                 }
-
-                    break;
-                case "Face":
-                    content += `[${msg.faceId}/${msg.name}]`;
-                    break;
-                case "Poke":
-                    content += `[Poked you with title {${msg.name}]\n`;
-                    break;
-                case "Forward":
-                case "ForwardMessage":
-
-                    if (msg.display) {
-                        content += `[${msg.display.title},${msg.display.summary}]\n`;
-                        for (const previewElement of msg.display.preview) {
-                            content += `--> ${previewElement}\n`;
-                        }
-                    } else {
-                        // Get summary from ForwardMessage Failed
-                        // content += `[Forwarded Messages]\n`;
-                        content += mod.qqProcessor.handleForwardMessage(msg.nodeList, 1);
-                    }
-                    break;
-
-                default:
-                    qqLogger.debug(`Unparsed MessageType: (${msg.type}). Ignored.`);
             }
+
+                break;
+            case "Face":
+                content += `[${msg.faceId}/${msg.name}]`;
+                break;
+            case "Poke":
+                content += `[Poked you with title {${msg.name}]\n`;
+                break;
+            case "Forward":
+            case "ForwardMessage":
+
+                if (msg.display) {
+                    content += `[${msg.display.title},${msg.display.summary}]\n`;
+                    for (const previewElement of msg.display.preview) {
+                        content += `--> ${previewElement}\n`;
+                    }
+                } else {
+                    // Get summary from ForwardMessage Failed
+                    // content += `[Forwarded Messages]\n`;
+                    content += mod.qqProcessor.handleForwardMessage(msg.nodeList, 1);
+                }
+                break;
+
+            default:
+                qqLogger.debug(`Unparsed MessageType: (${msg.type}). Ignored.`);
         }
+
         qqLogger.trace(`Got QQ message from: ${JSON.stringify(qdata.sender, null, 2)} Message Chain is: ${JSON.stringify(qdata.messageChain, null, 2)}`);
         let tgMsg;
         qdata.processed = content;
