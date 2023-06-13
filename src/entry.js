@@ -225,11 +225,15 @@ async function onQQMsg(qdata) {
             name = qdata.sender.memberName;
             nominalID = qdata.sender.group.id;
         }
-        let imagePool = [], shouldSpoiler = false;
-        for (const msg of qdata.messageChain) {
-            if (msg.type === "Source") continue;
-            if (msg.type === "Plain") content += msg.text + ` `;
-            if (msg.type === "Image") {
+        let imagePool = [], shouldSpoiler = false, processed = [0, 0];
+        for (const msg of qdata.messageChain) switch (msg.type) {
+            case "Source":
+                continue;
+            case "Plain":
+                content += msg.text + ` `;
+                processed[0]++;
+                break;
+            case "Image": {
                 //TODO: sendMediaGroup with URLs is unimplemented now, using this method temporary
                 if (imagePool.length === 0) {
                     if (msg.isEmoji) shouldSpoiler = true;
@@ -239,7 +243,34 @@ async function onQQMsg(qdata) {
                     content += `[<a href="${msg.url}">${msg.isEmoji ? "CuEmo" : "Image"}</a>] `;
                 }
             }
-            if (msg.type === "Face") content += `[${msg.faceId}/${msg.name}]`;
+                processed[0]++;
+                break;
+            case "Face":
+                content += `[${msg.faceId}/${msg.name}]`;
+                processed[0]++;
+                break;
+            case "Poke":
+                content += `[Poked you with title {${msg.name}]\n`;
+                processed[0]++;
+                break;
+            case "Forward":
+            case "ForwardMessage":
+
+                if (msg.display) {
+                    content += `[${msg.display.title},${msg.display.summary}]\n`;
+                    for (const previewElement of msg.display.preview) {
+                        content += `--> ${previewElement}\n`;
+                    }
+                } else {
+                    // Get summary from ForwardMessage Failed
+                    content += `[Forwarded Messages]\n`;
+                }
+                processed[0]++;
+                break;
+
+            default:
+                qqLogger.debug(`Unparsed MessageType: (${msg.type}). Ignored.`);
+                processed[1]++;
         }
         qqLogger.trace(`Got QQ message from: ${JSON.stringify(qdata.sender, null, 2)} Message Chain is: ${JSON.stringify(qdata.messageChain, null, 2)}`);
         let tgMsg;
