@@ -81,7 +81,8 @@ const tgBotDo = {
             height: 100,
             parse_mode: "HTML",
         };
-        if (secret.target.tgDefThreadID) form.message_thread_id = secret.target.tgDefThreadID;
+        if (secret.target.sticker_topic_ID) form.message_thread_id = secret.target.sticker_topic_ID;
+        else if (secret.target.tgDefThreadID) form.message_thread_id = secret.target.tgDefThreadID;
         if (isSilent) form.disable_notification = true;
         return await tgbot.sendAnimation(secret.target.tgID, path, form, {contentType: 'image/gif'}).catch((e) => tgLogger.warn(e.toString()));
     },
