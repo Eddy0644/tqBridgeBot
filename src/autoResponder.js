@@ -1,7 +1,14 @@
 const secret = require("../config/secret");
 const {Message: mrMessage} = require("mirai-js");
 const fetch = require("node-fetch");
+// const userConf = require("../config/userconf");
 let env;
+
+function needAutoRespond(nominalID) {
+    // if (userConf.autoRespond.allow !== 1) return false;
+    if (secret.qqAutoRespond.allow !== 1) return false;
+    return env.secret.qqAutoRespond.allowList.includes(nominalID);
+}
 
 async function doAutoRespond(nominalID, qdata, isGroup) {
     const {state, defLogger, qqBot} = env;
@@ -76,10 +83,6 @@ async function changeMyStat(newStat = "normal") {
     const tgMsg2 = await tgBotDo.sendMessage(message, true, "HTML");
     state.poolToDelete.add(tgMsg2, 8);
     return tgMsg2;
-}
-
-function needAutoRespond(nominalID) {
-    return env.secret.qqAutoRespond.allowList.includes(nominalID);
 }
 
 module.exports = (incomingEnv) => {
