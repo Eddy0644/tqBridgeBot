@@ -242,8 +242,8 @@ async function onQQMsg(qdata) {
                     content += `[${msg.isEmoji ? "CuEmo" : "Image"}] `;
                     imagePool.push(msg.url);
                 } else {
-                    // TODO separate into standalone function!
-                    content += `[<a href="${msg.url}">${msg.isEmoji ? "CuEmo" : "Image"}</a>] `;
+                    content += mod.qqProcessor.prodImageLink(msg.url, msg.isEmoji);
+                    // content += `[<a href="${msg.url}">${msg.isEmoji ? "CuEmo" : "Image"}</a>] `;
                 }
             }
                 break;
@@ -280,13 +280,12 @@ async function onQQMsg(qdata) {
         }
         if (imagePool.length === 1) {
             if (shouldSpoiler) {
-                tgMsg = await tgBotDo.sendAnimation(deliverTemplate  + `[${rand0}]`, imagePool[0], true, true);
+                tgMsg = await tgBotDo.sendAnimation(deliverTemplate + `[${rand0}]`, imagePool[0], true, true);
                 tgLogger.trace(`The only CuEmo delivered, preparing to re-deliver content to main thread.`);
-                imagePool.pop();
-
+                content = mod.qqProcessor.prodImageLink(imagePool.pop(), true);
+                // then the imagePool become zero and continue to deliver as Text.
             } else {
                 tgMsg = await tgBotDo.sendPhoto(deliverTemplate + content, imagePool[0], false, false);
-
             }
         }
         if (imagePool.length === 0) {

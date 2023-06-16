@@ -46,8 +46,10 @@ function handleForwardMessage(nodeList, indent = 1) {
     qqLogger.trace(`Parsed ForwardMessage:\n${ans}`);
     return ans;
 }
-
+function prodImageLink(url,isEmoji){
+    return `[<a href="${url}">${isEmoji ? "CuEmo" : "Image"}</a>] `;
+}
 module.exports = (incomingEnv) => {
     env = incomingEnv;
-    return {handleForwardMessage};
+    return {handleForwardMessage,prodImageLink};
 };
