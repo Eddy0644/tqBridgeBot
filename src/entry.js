@@ -242,10 +242,10 @@ async function onQQMsg(qdata) {
                     content += `[${msg.isEmoji ? "CuEmo" : "Image"}] `;
                     imagePool.push(msg.url);
                 } else {
+                    // TODO separate into standalone function!
                     content += `[<a href="${msg.url}">${msg.isEmoji ? "CuEmo" : "Image"}</a>] `;
                 }
             }
-
                 break;
             case "Face":
                 content += `[${msg.faceId}/${msg.name}]`;
@@ -273,10 +273,21 @@ async function onQQMsg(qdata) {
         }
 
         qqLogger.trace(`Got QQ message from: ${JSON.stringify(qdata.sender, null, 2)} Message Chain is: ${JSON.stringify(qdata.messageChain, null, 2)}`);
-        let tgMsg;
+        let tgMsg, rand0 = Math.random().toString().substring(4, 7);
         qdata.processed = content;
         if (mod.autoRespond.needAutoRespond(nominalID)) {
             await mod.autoRespond.doAutoRespond(nominalID, qdata, isGroup);
+        }
+        if (imagePool.length === 1) {
+            if (shouldSpoiler) {
+                tgMsg = await tgBotDo.sendAnimation(deliverTemplate  + `[${rand0}]`, imagePool[0], true, true);
+                tgLogger.trace(`The only CuEmo delivered, preparing to re-deliver content to main thread.`);
+                imagePool.pop();
+
+            } else {
+                tgMsg = await tgBotDo.sendPhoto(deliverTemplate + content, imagePool[0], false, false);
+
+            }
         }
         if (imagePool.length === 0) {
             try {
@@ -313,7 +324,7 @@ async function onQQMsg(qdata) {
                 state.prePerson.tgMsg = tgMsg;
                 state.prePerson.firstWord = `[${dayjs().format("H:mm:ss")}] ${content}`;
             }
-        } else if (imagePool.length === 1) tgMsg = await (shouldSpoiler ? tgBotDo.sendAnimation : tgBotDo.sendPhoto)(deliverTemplate + content, imagePool[0], false, shouldSpoiler);
+        }
         // else tgMsg = await tgBotDo.sendMediaGroup(content, imagePool, false, false);
         addToMsgMappings(tgMsg.message_id, qdata.sender, qdata.messageChain, isGroup);
     } catch (e) {

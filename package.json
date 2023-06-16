@@ -1,6 +1,6 @@
 {
   "name": "tqbridgebot",
-  "version": "0.2.4",
+  "version": "0.3.0",
   "dependencies": {
     "dayjs": "^1.11.7",
     "file-box": "^1.4.15",
@@ -11,7 +11,7 @@
     "node-telegram-bot-api": "^0.61.0"
   },
   "scripts": {
-    "start": "node src/entry.js",
+    "start": "node src/entry.js poll",
     "p": "node src/entry.js poll",
     "h0": "node src/entry.js hook 0",
     "h9": "node src/entry.js hook 9"
