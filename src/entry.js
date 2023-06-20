@@ -38,6 +38,7 @@ const mod = {
     autoRespond: require('./autoResponder')(env),
     upyunMiddleware: require('./upyunMiddleware')(env),
     qqProcessor: require('./qqProcessor')(env),
+    tgProcessor: require('./tgProcessor')(env),
 }
 
 state.poolToDelete.add = function (tgMsg, delay) {
@@ -260,7 +261,7 @@ async function onQQMsg(qdata) {
                 break;
             case "App":
                 const appParsed = mod.qqProcessor.parseApp(msg);
-                (appParsed.length > 30 ? qqLogger.trace : qqLogger.warn)(`Parsed App Message: ${appParsed}`);
+                qqLogger.trace(`Parsed App Message: ${appParsed}`);
                 content += appParsed;
                 break;
             case "Poke":
@@ -268,7 +269,6 @@ async function onQQMsg(qdata) {
                 break;
             case "Forward":
             case "ForwardMessage":
-
                 if (msg.display) {
                     content += `[${msg.display.title},${msg.display.summary}]\n`;
                     for (const previewElement of msg.display.preview) {
@@ -305,25 +305,8 @@ async function onQQMsg(qdata) {
             // These merge codes need to be improved!!!!!!!
             try {
                 if (!isGroup && coProcessor.isPreStateValid(state.prePerson, qdata.sender.id)) {
-                    //TODO: add template string separately!!!
-                    const _ = state.prePerson;
-                    qdata.prePersonNeedUpdate = false;
-                    // from same person, ready to merge
-                    // noinspection JSObjectNullOrUndefined
-                    if (_.firstWord === "") {
-                        // 已经合并过，标题已经更改，直接追加新内容
-                        const newString = `${_.tgMsg.text}\n[${dayjs().format("H:mm:ss")}] ${content}`;
-                        _.tgMsg = await tgBotDo.editMessageText(newString, _.tgMsg);
-                        defLogger.debug(`Delivered new message "${content}" from Person: ${name} into 2nd message.`);
-                        return;
-                    } else {
-                        // 准备修改先前的消息，去除头部
-                        const newString = `📨⛓️ [<b>${name}</b>] - - - -\n${_.firstWord}\n[${dayjs().format("H:mm:ss")}] ${content}`;
-                        _.tgMsg = await tgBotDo.editMessageText(newString, _.tgMsg);
-                        _.firstWord = "";
-                        defLogger.debug(`Delivered new message "${content}" from Person: ${name} into first message.`);
-                        return;
-                    }
+                    const result = await mod.tgProcessor.mergeToPrev_tgMsg(qdata, false, content);
+                    if (result === "succ") return;
                 } else qdata.prePersonNeedUpdate = true;
             } catch (e) {
                 qqLogger.info(`Error occurred while merging person msg into older TG msg. Falling back to normal way.\n\t${e.toString()}\n\t${JSON.stringify(state.preRoom)}`);
