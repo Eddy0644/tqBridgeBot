@@ -8,7 +8,7 @@ async function a() {
     const {} = env;
 }
 
-async function mergeToPrev_tgMsg(qdata, isGroup, content) {
+async function mergeToPrev_tgMsg(qdata, isGroup, content,name="") {
     const {state, defLogger, tgBotDo} = env;
     const word = isGroup ? "Group" : "Person";
     const newItemTitle = isGroup ? qdata.sender.memberName : dayjs().format("H:mm:ss");
