@@ -19,6 +19,11 @@ const state = {
         pers_id: 0,
         firstWord: ""
     },
+    preGroup: {
+        tgMsg: null,
+        pers_id: 0,
+        firstWord: ""
+    },
     // store TG messages which need to be revoked after a period of time
     poolToDelete: [],
     autoRespond: [],
@@ -297,6 +302,7 @@ async function onQQMsg(qdata) {
             }
         }
         if (imagePool.length === 0) {
+            // These merge codes need to be improved!!!!!!!
             try {
                 if (!isGroup && coProcessor.isPreStateValid(state.prePerson, qdata.sender.id)) {
                     //TODO: add template string separately!!!
@@ -320,16 +326,48 @@ async function onQQMsg(qdata) {
                     }
                 } else qdata.prePersonNeedUpdate = true;
             } catch (e) {
+                qqLogger.info(`Error occurred while merging person msg into older TG msg. Falling back to normal way.\n\t${e.toString()}\n\t${JSON.stringify(state.preRoom)}`);
+                msgMergeFailCount--;
+                if (msgMergeFailCount < 0) await softReboot("merging message failure reaches threshold.");
+            }
+            try {
+                if (isGroup && coProcessor.isPreStateValid(state.preGroup, qdata.sender.group.id)) {
+                    const _ = state.preGroup;
+                    qdata.preGroupNeedUpdate = false;
+                    // from same person, ready to merge
+                    // noinspection JSObjectNullOrUndefined
+                    if (_.firstWord === "") {
+                        // 已经合并过，标题已经更改，直接追加新内容
+                        const newString = `${_.tgMsg.text}\n[${qdata.sender.memberName}] ${content}`;
+                        _.tgMsg = await tgBotDo.editMessageText(newString, _.tgMsg);
+                        defLogger.debug(`Delivered new message "${content}" from Group: ${name} into 2nd message.`);
+                        return;
+                    } else {
+                        // 准备修改先前的消息，去除头部        \n📨📨
+                        const newString = `📨⛓️ [<b>${name}</b>] - - - -\n${_.firstWord}\n[${qdata.sender.memberName}] ${content}`;
+                        _.tgMsg = await tgBotDo.editMessageText(newString, _.tgMsg);
+                        _.firstWord = "";
+                        defLogger.debug(`Delivered new message "${content}" from Group: ${name} into first message.`);
+                        return;
+                    }
+                } else qdata.preGroupNeedUpdate = true;
+            } catch (e) {
                 qqLogger.info(`Error occurred while merging room msg into older TG msg. Falling back to normal way.\n\t${e.toString()}\n\t${JSON.stringify(state.preRoom)}`);
                 msgMergeFailCount--;
                 if (msgMergeFailCount < 0) await softReboot("merging message failure reaches threshold.");
             }
 
             tgMsg = await tgBotDo.sendMessage(deliverTemplate + content, false, "HTML");
+
             if (!isGroup && qdata.prePersonNeedUpdate) {
                 state.prePerson.pers_id = qdata.sender.id;
                 state.prePerson.tgMsg = tgMsg;
                 state.prePerson.firstWord = `[${dayjs().format("H:mm:ss")}] ${content}`;
+            }
+            if (isGroup && qdata.preGroupNeedUpdate) {
+                state.prePerson.pers_id = qdata.sender.group.id;
+                state.prePerson.tgMsg = tgMsg;
+                state.prePerson.firstWord = `[${qdata.sender.memberName}] ${content}`;
             }
         }
         // else tgMsg = await tgBotDo.sendMediaGroup(content, imagePool, false, false);
