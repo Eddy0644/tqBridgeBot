@@ -304,38 +304,19 @@ async function onQQMsg(qdata) {
         if (imagePool.length === 0) {
             // These merge codes need to be improved!!!!!!!
             try {
-                if (!isGroup && coProcessor.isPreStateValid(state.prePerson, qdata.sender.id)) {
-                    const result = await mod.tgProcessor.mergeToPrev_tgMsg(qdata, false, content);
-                    if (result === "succ") return;
-                } else qdata.prePersonNeedUpdate = true;
+                if (!isGroup) {
+                    if (coProcessor.isPreStateValid(state.prePerson, qdata.sender.id)) {
+                        const result = await mod.tgProcessor.mergeToPrev_tgMsg(qdata, false, content);
+                        if (result === true) return;
+                    } else qdata.prePersonNeedUpdate = true;
+                } else {
+                    if (coProcessor.isPreStateValid(state.preGroup, qdata.sender.group.id)) {
+                        const result = await mod.tgProcessor.mergeToPrev_tgMsg(qdata, true, content);
+                        if (result === true) return;
+                    } else qdata.preGroupNeedUpdate = true;
+                }
             } catch (e) {
-                qqLogger.info(`Error occurred while merging person msg into older TG msg. Falling back to normal way.\n\t${e.toString()}\n\t${JSON.stringify(state.preRoom)}`);
-                msgMergeFailCount--;
-                if (msgMergeFailCount < 0) await softReboot("merging message failure reaches threshold.");
-            }
-            try {
-                if (isGroup && coProcessor.isPreStateValid(state.preGroup, qdata.sender.group.id)) {
-                    const _ = state.preGroup;
-                    qdata.preGroupNeedUpdate = false;
-                    // from same person, ready to merge
-                    // noinspection JSObjectNullOrUndefined
-                    if (_.firstWord === "") {
-                        // 已经合并过，标题已经更改，直接追加新内容
-                        const newString = `${_.tgMsg.text}\n[${qdata.sender.memberName}] ${content}`;
-                        _.tgMsg = await tgBotDo.editMessageText(newString, _.tgMsg);
-                        defLogger.debug(`Delivered new message "${content}" from Group: ${name} into 2nd message.`);
-                        return;
-                    } else {
-                        // 准备修改先前的消息，去除头部        \n📨📨
-                        const newString = `📨⛓️ [<b>${qdata.sender.group.name}</b>] - - - -\n${_.firstWord}\n[${qdata.sender.memberName}] ${content}`;
-                        _.tgMsg = await tgBotDo.editMessageText(newString, _.tgMsg);
-                        _.firstWord = "";
-                        defLogger.debug(`Delivered new message "${content}" from Group: ${name} into first message.`);
-                        return;
-                    }
-                } else qdata.preGroupNeedUpdate = true;
-            } catch (e) {
-                qqLogger.info(`Error occurred while merging room msg into older TG msg. Falling back to normal way.\n\t${e.toString()}\n\t${JSON.stringify(state.preRoom)}`);
+                qqLogger.info(`Error occurred while merging a msg into older TG msg. Falling back to normal way.\n\t${e.toString()}\n\t${JSON.stringify(state[isGroup ? "preGroup" : "prePerson"])}`);
                 msgMergeFailCount--;
                 if (msgMergeFailCount < 0) await softReboot("merging message failure reaches threshold.");
             }

@@ -22,14 +22,14 @@ async function mergeToPrev_tgMsg(qdata, isGroup, content) {
         const newString = `${_.tgMsg.text}\n[${newItemTitle}] ${content}`;
         _.tgMsg = await tgBotDo.editMessageText(newString, _.tgMsg);
         defLogger.debug(`Delivered new message "${content}" from ${word}: ${name} into 2nd message.`);
-        return "succ";
+        return true;
     } else {
         // 准备修改先前的消息，去除头部
         const newString = `📨⛓️ [<b>${name}</b>] - - - -\n${_.firstWord}\n[${newItemTitle}] ${content}`;
         _.tgMsg = await tgBotDo.editMessageText(newString, _.tgMsg);
         _.firstWord = "";
         defLogger.debug(`Delivered new message "${content}" from ${word}: ${name} into first message.`);
-        return "succ";
+        return true;
     }
 }
 
