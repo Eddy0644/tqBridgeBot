@@ -250,6 +250,9 @@ async function onQQMsg(qdata) {
             case "Face":
                 content += `[${msg.faceId}/${msg.name}]`;
                 break;
+            case "MarketFace":
+                content += `(${msg.id}/${msg.name})`;
+                break;
             case "Poke":
                 content += `[Poked you with title {${msg.name}]\n`;
                 break;
