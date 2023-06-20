@@ -317,7 +317,7 @@ async function onQQMsg(qdata) {
                         defLogger.debug(`Delivered new message "${content}" from Person: ${name} into 2nd message.`);
                         return;
                     } else {
-                        // 准备修改先前的消息，去除头部        \n📨📨
+                        // 准备修改先前的消息，去除头部
                         const newString = `📨⛓️ [<b>${name}</b>] - - - -\n${_.firstWord}\n[${dayjs().format("H:mm:ss")}] ${content}`;
                         _.tgMsg = await tgBotDo.editMessageText(newString, _.tgMsg);
                         _.firstWord = "";
@@ -344,7 +344,7 @@ async function onQQMsg(qdata) {
                         return;
                     } else {
                         // 准备修改先前的消息，去除头部        \n📨📨
-                        const newString = `📨⛓️ [<b>${name}</b>] - - - -\n${_.firstWord}\n[${qdata.sender.memberName}] ${content}`;
+                        const newString = `📨⛓️ [<b>${qdata.sender.group.name}</b>] - - - -\n${_.firstWord}\n[${qdata.sender.memberName}] ${content}`;
                         _.tgMsg = await tgBotDo.editMessageText(newString, _.tgMsg);
                         _.firstWord = "";
                         defLogger.debug(`Delivered new message "${content}" from Group: ${name} into first message.`);
@@ -365,9 +365,9 @@ async function onQQMsg(qdata) {
                 state.prePerson.firstWord = `[${dayjs().format("H:mm:ss")}] ${content}`;
             }
             if (isGroup && qdata.preGroupNeedUpdate) {
-                state.prePerson.pers_id = qdata.sender.group.id;
-                state.prePerson.tgMsg = tgMsg;
-                state.prePerson.firstWord = `[${qdata.sender.memberName}] ${content}`;
+                state.preGroup.pers_id = qdata.sender.group.id;
+                state.preGroup.tgMsg = tgMsg;
+                state.preGroup.firstWord = `[${qdata.sender.memberName}] ${content}`;
             }
         }
         // else tgMsg = await tgBotDo.sendMediaGroup(content, imagePool, false, false);
