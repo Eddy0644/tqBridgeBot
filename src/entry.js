@@ -253,6 +253,11 @@ async function onQQMsg(qdata) {
             case "MarketFace":
                 content += `(${msg.id}/${msg.name})`;
                 break;
+            case "App":
+                const appParsed = mod.qqProcessor.parseApp(msg);
+                (appParsed.length > 30 ? qqLogger.trace : qqLogger.warn)(`Parsed App Message: ${appParsed}`);
+                content += appParsed;
+                break;
             case "Poke":
                 content += `[Poked you with title {${msg.name}]\n`;
                 break;

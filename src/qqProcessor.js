@@ -46,10 +46,30 @@ function handleForwardMessage(nodeList, indent = 1) {
     qqLogger.trace(`Parsed ForwardMessage:\n${ans}`);
     return ans;
 }
-function prodImageLink(url,isEmoji){
+
+function prodImageLink(url, isEmoji) {
     return `[<a href="${url}">${isEmoji ? "CuEmo" : "Image"}</a>] `;
 }
+
+function parseApp(msg) {
+    const {qqLogger} = env;
+    try {
+        const ctx = JSON.parse(msg.content);
+        if (ctx.prompt) {
+            const defPrompt = ctx.prompt;
+            if (ctx.meta.detail_1.qqdocurl) {
+                const {desc, preview, qqdocurl} = ctx.meta.detail_1;
+                return `[<a href="${preview}">App</a>]<a href="${qqdocurl}">${desc}</a>`;
+            } else return `[App, ${defPrompt}]`;
+        } else return "[App, parsed nothing]";
+
+    } catch (e) {
+        qqLogger.warn(`[App] message not parsable!`);
+        return "[App, parse failed]";
+    }
+}
+
 module.exports = (incomingEnv) => {
     env = incomingEnv;
-    return {handleForwardMessage,prodImageLink};
+    return {handleForwardMessage, prodImageLink, parseApp};
 };
