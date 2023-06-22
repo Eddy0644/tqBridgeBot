@@ -118,7 +118,8 @@ async function onTGMsg(tgMsg) {
         } else if (tgMsg.text.indexOf("F$") === 0 || tgMsg.text.indexOf("/f") === 0) {
             // Want to find somebody, and have inline parameters
             let isGroup = (tgMsg.text.indexOf("/fg") === 0);
-            const findToken = tgMsg.text.replace("F$", "").replace("/f", "");
+            // only /fg____ is allowed to retrieve groups
+            const findToken = tgMsg.text.replace("F$", "").replace("/fg", "").replace("/f", "");
             let targetQQ = null;
             for (const pair of secret.tgConf.nameAliases) {
                 if (findToken === pair[0]) {

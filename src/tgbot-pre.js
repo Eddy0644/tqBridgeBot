@@ -31,8 +31,12 @@ if (isPolling) {
     });
     tgbot.openWebHook();
 }
+// Updated here to avoid mass amount of polling error occupying logfile.
+let errorCountLeft = 2;
 tgbot.on('polling_error', async (e) => {
-    tgLogger.warn("Polling - " + e.message.replace("Error: ", ""));
+    const msg = "Polling - " + e.message.replace("Error: ", "");
+    if (errorCountLeft-- > 0) tgLogger.warn(msg);
+    else console.warn(msg);
 });
 tgbot.on('webhook_error', async (e) => {
     tgLogger.warn("Webhook - " + e.message.replace("Error: ", ""));
