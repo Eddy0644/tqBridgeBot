@@ -35,7 +35,7 @@ if (isPolling) {
 // Updated here to avoid mass amount of polling error occupying logfile.
 let errorStat = 0;
 tgbot.on('polling_error', async (e) => {
-    const msg = "Polling - " + e.message.replace("Error: ", ""), msg2 = "[Error]\t";
+    const msg = "Polling - " + e.message.replace("Error: ", ""), msg2 = `[${new Date().toLocaleTimeString()}|Error]\t`;
     if (errorStat === 0) {
         errorStat = 1;
         setTimeout(async () => {

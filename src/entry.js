@@ -222,6 +222,13 @@ async function softReboot(reason) {
 }
 
 async function onQQMsg(qdata) {
+    //preposition filter about QID
+    for (const one of secret.test.excludeQN) {
+        if (qdata.sender.id === one) {
+            qqLogger.debug(`Ignored a message from ${one}. See log for detail.`);
+            return;
+        }
+    }
     try {
         let content = "", isGroup = false, deliverTemplate;
         let name, nominalID;
