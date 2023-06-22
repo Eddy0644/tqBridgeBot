@@ -37,4 +37,13 @@ module.exports = {
             }
         }
     },
+    httpsCurl: async function (url) {
+        return new Promise((resolve, reject) => {
+            https.get(url, {}, (response) => {
+                resolve("SUCCESS");
+            }).on('error', (error) => {
+                reject(error);
+            });
+        });
+    }
 }

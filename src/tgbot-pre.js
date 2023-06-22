@@ -2,6 +2,7 @@ const secret = require('../config/secret');
 const {tgLogger} = require('./logger')();
 // const userConf = require('../config/userconf');
 const TelegramBot = require("node-telegram-bot-api");
+const {httpsCurl} = require('./common');
 const fs = require("fs");
 const https = require("https");
 const agentEr = require("https-proxy-agent");
@@ -32,11 +33,13 @@ if (isPolling) {
     tgbot.openWebHook();
 }
 // Updated here to avoid mass amount of polling error occupying logfile.
-let errorCountLeft = 2;
+let errorCountLeft = 1;
 tgbot.on('polling_error', async (e) => {
     const msg = "Polling - " + e.message.replace("Error: ", "");
-    if (errorCountLeft-- > 0) tgLogger.warn(msg);
-    else console.warn(msg);
+    if (errorCountLeft-- > 0) {
+        await httpsCurl(secret.notification.baseUrl + secret.notification.prompt_network_problematic);
+        tgLogger.warn(msg);
+    } else console.warn(msg);
 });
 tgbot.on('webhook_error', async (e) => {
     tgLogger.warn("Webhook - " + e.message.replace("Error: ", ""));
