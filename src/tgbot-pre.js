@@ -33,13 +33,30 @@ if (isPolling) {
     tgbot.openWebHook();
 }
 // Updated here to avoid mass amount of polling error occupying logfile.
-let errorCountLeft = 1;
+let errorStat = 0;
 tgbot.on('polling_error', async (e) => {
-    const msg = "Polling - " + e.message.replace("Error: ", "");
-    if (errorCountLeft-- > 0) {
-        await httpsCurl(secret.notification.baseUrl + secret.notification.prompt_network_problematic);
-        tgLogger.warn(msg);
-    } else console.warn(msg);
+    const msg = "Polling - " + e.message.replace("Error: ", ""), msg2 = "[Error]\t";
+    if (errorStat === 0) {
+        errorStat = 1;
+        setTimeout(async () => {
+            if (errorStat === 2) {
+                // still have errors after the timer been set up triggered by first error
+                await httpsCurl(secret.notification.baseUrl + secret.notification.prompt_network_problematic);
+                tgLogger.warn(`Frequent network issue detected! Please check network!\n${msg}`);
+            } else {
+                // no other error during this period, discarding notify initiation
+                errorStat = 0;
+                tgLogger.warn(`There may be a temporary network issue but now disappeared. If possible, please check your network config.`);
+
+            }
+        }, 10000);
+        console.warn(msg2 + msg);
+    } else if (errorStat === 1) {
+        errorStat = 2;
+        console.warn(msg2 + msg);
+    } else {
+        console.warn(msg2 + msg);
+    }
 });
 tgbot.on('webhook_error', async (e) => {
     tgLogger.warn("Webhook - " + e.message.replace("Error: ", ""));
