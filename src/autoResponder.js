@@ -68,22 +68,22 @@ async function doAutoRespond(nominalID, qdata, isGroup) {
 }
 
 async function changeMyStat(newStat = "normal") {
-    const {tgBotDo, state, tgLogger, defLogger} = env;
+    const {tgBotDo, state, tgLogger, defLogger, mod} = env;
     // const newStat = tgMsg.text.replace("/mystat", "");
     if (newStat.length < 2) {
-        await tgBotDo.sendChatAction("record_voice");
-        tgLogger.debug(`Received wrong /mystat command usage. Skipping...`);
-        return;
+        // await tgBotDo.sendChatAction("record_voice");
+        // tgLogger.debug(`Received wrong /mystat command usage. Skipping...`);
+        // return;
+        return await mod.tgProcessor.replyWithTips("wrongMYSTAT_setter", null, 6);
     }
     state.myStat = newStat;
-    const message = `Changed myStat into ${newStat}.`;
-    defLogger.debug(message);
+    // const message = `Changed myStat into ${newStat}.`;
+    // defLogger.debug(message);
 
     if (newStat === "normal") state.autoRespond = [];
-
-    const tgMsg2 = await tgBotDo.sendMessage(null,message, true, "HTML");
-    state.poolToDelete.add(tgMsg2, 8);
-    return tgMsg2;
+    // const tgMsg2 = await tgBotDo.sendMessage(null, message, true, "HTML");
+    // state.poolToDelete.add(tgMsg2, 8);
+    return await mod.tgProcessor.replyWithTips("mystat_changed", null, 6, newStat);
 }
 
 module.exports = (incomingEnv) => {

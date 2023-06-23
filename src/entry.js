@@ -32,7 +32,7 @@ const state = {
 
 // Loading instance modules...
 const env = {
-    state, tgBotDo, tgLogger, defLogger, qqLogger, secret, qqBot
+    state, tgBotDo, tgLogger, defLogger, qqLogger, secret, qqBot, mod: {}
 };
 const mod = {
     autoRespond: require('./autoResponder')(env),
@@ -40,7 +40,7 @@ const mod = {
     qqProcessor: require('./qqProcessor')(env),
     tgProcessor: require('./tgProcessor')(env),
 }
-
+env.mod = mod;
 state.poolToDelete.add = function (tgMsg, delay) {
     if (tgMsg !== null) {
         tgLogger.debug(`Added message #${tgMsg.message_id} to poolToDelete with timer (${delay})sec.`);
@@ -281,7 +281,7 @@ async function softReboot(reason) {
         firstWord: ""
     };
     msgMergeFailCount = 6;
-    await mod.tgProcessor.replyWithTips("softReboot", secret.class.fallback.tgGroupId, userDo ? 6 : 25, reason);
+    await mod.tgProcessor.replyWithTips("softReboot", null, userDo ? 6 : 25, reason);
 }
 
 async function onQQMsg(qdata) {
