@@ -8,7 +8,7 @@ let env;
 //     const {} = env;
 // }
 
-async function mergeToPrev_tgMsg(qdata, isGroup, content,name="") {
+async function mergeToPrev_tgMsg(qdata, isGroup, content, name = "") {
     const {state, defLogger, tgBotDo} = env;
     const word = isGroup ? "Group" : "Person";
     const newItemTitle = isGroup ? qdata.sender.memberName : dayjs().format("H:mm:ss");
@@ -33,7 +33,26 @@ async function mergeToPrev_tgMsg(qdata, isGroup, content,name="") {
     }
 }
 
+async function replyWithTips(tipMode = "", target = null, timeout = 6, additional = null) {
+    const {tgLogger, state} = env;
+    let message = "";
+    switch (tipMode) {
+        case "globalCmdToC2C":
+            message = `You sent a global command to a C2C chat. The operation has been blocked and please check.`;
+            break;
+        default:
+            tgLogger.error(`Wrong call of tg replyWithTips() with invalid 'tipMode'. Please check arguments.\n${tipMode}\t${target}`);
+            return;
+    }
+    if (target === null) {
+        tgLogger.error(`Wrong call of tg replyWithTips() with null 'target'. Please check arguments.\n${tipMode}\t${target}`);
+        return;
+    }
+    const tgMsg = await tgBotDo.sendMessage({tgGroupId: target}, message, true);
+    state.poolToDelete.add(tgMsg, timeout);
+}
+
 module.exports = (incomingEnv) => {
     env = incomingEnv;
-    return {mergeToPrev_tgMsg};
+    return {mergeToPrev_tgMsg, replyWithTips};
 };
