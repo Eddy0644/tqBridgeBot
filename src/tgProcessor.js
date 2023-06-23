@@ -4,16 +4,16 @@ const dayjs = require("dayjs");
 const {tgBotDo} = require("./tgbot-pre");
 let env;
 
-async function a() {
-    const {} = env;
-}
+// async function a() {
+//     const {} = env;
+// }
 
 async function mergeToPrev_tgMsg(qdata, isGroup, content,name="") {
     const {state, defLogger, tgBotDo} = env;
     const word = isGroup ? "Group" : "Person";
     const newItemTitle = isGroup ? qdata.sender.memberName : dayjs().format("H:mm:ss");
     //TODO: add template string separately!!!
-    const _ = isGroup ? state.prePerson : state.preGroup;
+    const _ = isGroup ? state.preGroup : state.prePerson;
     qdata[`pre${word}NeedUpdate`] = false;
     // from same person, ready to merge
     // noinspection JSObjectNullOrUndefined
