@@ -415,7 +415,23 @@ async function main() {
             await onQQMsg(data);
         }));
     qqBot.on('FriendSyncMessage', async data => {
-        if (data.subject.id === secret.miraiCredential.qq) await onQQMsg(data);
+        // Capture messages sent by myself to myself
+        if (data.subject.id === secret.miraiCredential.qq) {
+            data.sender = data.subject;
+            await onQQMsg(data);
+        }
+    });
+    qqBot.on('GroupSyncMessage', async data => {
+        // Capture messages sent by myself to test group
+        if (data.subject.id === secret.target.testGroupQID) {
+            data.sender = {
+                id: secret.miraiCredential.qq,
+                // Name of bot itself when delivering message by itself to test group
+                memberName: "SelfEcho",
+                group: data.subject
+            };
+            await onQQMsg(data);
+        }
     });
 }
 
