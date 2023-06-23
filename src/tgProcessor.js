@@ -68,7 +68,7 @@ async function replyWithTips(tipMode = "", target = null, timeout = 6, additiona
     }
     const tgMsg = await tgBotDo.sendMessage({tgGroupId: target}, message, true, "HTML", form);
     if (timeout !== 0) state.poolToDelete.add(tgMsg, timeout);
-    defLogger.debug(`Sent out following tips: ${message}`);
+    defLogger.debug(`Sent out following tips: {${message}}`);
 }
 
 module.exports = (incomingEnv) => {
