@@ -81,7 +81,7 @@ async function changeMyStat(newStat = "normal") {
 
     if (newStat === "normal") state.autoRespond = [];
 
-    const tgMsg2 = await tgBotDo.sendMessage(message, true, "HTML");
+    const tgMsg2 = await tgBotDo.sendMessage(null,message, true, "HTML");
     state.poolToDelete.add(tgMsg2, 8);
     return tgMsg2;
 }

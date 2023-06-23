@@ -62,12 +62,14 @@ tgbot.on('webhook_error', async (e) => {
     tgLogger.warn("Webhook - " + e.message.replace("Error: ", ""));
 });
 const tgBotDo = {
-    sendMessage: async (msg, isSilent = false, parseMode = null, form = {}) => {
+    sendMessage: async (receiver = null, msg, isSilent = false, parseMode = null, form = {}) => {
         await delay(100);
-        if (secret.target.tgDefThreadID) form.message_thread_id = secret.target.tgDefThreadID;
+        // if (secret.target.tgDefThreadID) form.message_thread_id = secret.target.tgDefThreadID;
+        // noinspection JSUnresolvedVariable
+        if (receiver && receiver.tgThreadId) form.message_thread_id = receiver.tgThreadId;
         if (isSilent) form.disable_notification = true;
         if (parseMode) form.parse_mode = parseMode;
-        return tgbot.sendMessage(secret.target.tgID, msg, form).catch((e) => tgLogger.warn(e.toString()));
+        return tgbot.sendMessage(receiver ? receiver.tgGroupId : secret.target.tgID, msg, form).catch((e) => tgLogger.warn(e.toString()));
     },
     sendChatAction: async (action) => {
         await delay(100);
@@ -83,7 +85,7 @@ const tgBotDo = {
             tgLogger.warn(e.toString());
         });
     },
-    sendPhoto: async (caption, path, isSilent = false, hasSpoiler = false) => {
+    sendPhoto: async (receiver = null, caption, path, isSilent = false, hasSpoiler = false) => {
         await delay(100);
         let form = {
             caption: caption,
@@ -92,9 +94,11 @@ const tgBotDo = {
             height: 100,
             parse_mode: "HTML",
         };
-        if (secret.target.tgDefThreadID) form.message_thread_id = secret.target.tgDefThreadID;
+        // if (secret.target.tgDefThreadID) form.message_thread_id = secret.target.tgDefThreadID;
+        // noinspection JSUnresolvedVariable
+        if (receiver && receiver.tgThreadId) form.message_thread_id = receiver.tgThreadId;
         if (isSilent) form.disable_notification = true;
-        return await tgbot.sendPhoto(secret.target.tgID, path, form, {contentType: 'image/gif'}).catch((e) => tgLogger.warn(e.toString()));
+        return await tgbot.sendPhoto(receiver ? receiver.tgGroupId : secret.target.tgID, path, form, {contentType: 'image/gif'}).catch((e) => tgLogger.warn(e.toString()));
     },
     sendAnimation: async (caption, path, isSilent = false, hasSpoiler = false) => {
         await delay(100);

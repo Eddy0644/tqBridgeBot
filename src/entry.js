@@ -140,14 +140,14 @@ async function onTGMsg(tgMsg) {
                     res = {group: {id: targetQQ, name: targetQQ}};
                 }
                 qqLogger.debug(content);
-                const tgMsg = await tgBotDo.sendMessage(content, true, "MarkdownV2");
+                const tgMsg = await tgBotDo.sendMessage(null, content, true, "MarkdownV2");
                 addToMsgMappings(tgMsg.message_id, res, null, isGroup);
                 // state.poolToDelete.add(tgMsg, 6);
             } else qqLogger.debug(`Find [${findToken}] in QQ failed.`);
 
         } else if (tgMsg.text === "/lock") {
             state.lockTarget = state.lockTarget ? 0 : 1;
-            const tgMsg = await tgBotDo.sendMessage(`Already set lock state to ${state.lockTarget}.`, true);
+            const tgMsg = await tgBotDo.sendMessage(null, `Already set lock state to ${state.lockTarget}.`, true);
             state.poolToDelete.add(tgMsg, 6);
         } else {
             //inline find someone: (priority higher than ops below)
@@ -215,7 +215,7 @@ async function softReboot(reason) {
         firstWord: ""
     };
     msgMergeFailCount = 6;
-    const tgMsg = await tgBotDo.sendMessage(`Soft Reboot Successful.\nReason: <code>${reason}</code>`, userDo, "HTML", {
+    const tgMsg = await tgBotDo.sendMessage(null, `Soft Reboot Successful.\nReason: <code>${reason}</code>`, userDo, "HTML", {
         reply_markup: {}
     });
     state.poolToDelete.add(tgMsg, userDo ? 6 : 25);
@@ -299,6 +299,22 @@ async function onQQMsg(qdata) {
         if (mod.autoRespond.needAutoRespond(nominalID)) {
             await mod.autoRespond.doAutoRespond(nominalID, qdata, isGroup);
         }
+
+        // Start deliver process, start fetching from config
+        qdata.receiver = null;
+        with (secret.class) {
+            for (const pair of C2C) {
+                if (pair.qTarget[0] === nominalID && pair.qTarget[1] === isGroup) {
+                    // Matched pair
+                    qdata.receiver = pair;
+                    break;
+                }
+            }
+            if (!qdata.receiver) {
+                qdata.receiver = fallback;
+            }
+        }
+
         if (imagePool.length === 1) {
             if (shouldSpoiler) {
                 tgMsg = await tgBotDo.sendAnimation(deliverTemplate + `[${rand0}]`, imagePool[0], true, true);
@@ -306,7 +322,7 @@ async function onQQMsg(qdata) {
                 content = mod.qqProcessor.prodImageLink(imagePool.pop(), true);
                 // then the imagePool become zero and continue to deliver as Text.
             } else {
-                tgMsg = await tgBotDo.sendPhoto(deliverTemplate + content, imagePool[0], false, false);
+                tgMsg = await tgBotDo.sendPhoto(qdata.receiver, deliverTemplate + content, imagePool[0], false, false);
             }
         }
         if (imagePool.length === 0) {
@@ -329,7 +345,7 @@ async function onQQMsg(qdata) {
                 if (msgMergeFailCount < 0) await softReboot("merging message failure reaches threshold.");
             }
 
-            tgMsg = await tgBotDo.sendMessage(deliverTemplate + content, false, "HTML");
+            tgMsg = await tgBotDo.sendMessage(qdata.receiver, deliverTemplate + content, false, "HTML");
 
             if (!isGroup && qdata.prePersonNeedUpdate) {
                 state.prePerson.pers_id = qdata.sender.id;
@@ -351,7 +367,7 @@ async function onQQMsg(qdata) {
 
 async function deliverTGMediaToQQ(tgMsg, tg_media, media_type) {
     if (state.last.s !== STypes.Chat) {
-        await tgBotDo.sendMessage("🛠 Sorry, but media sending without last chatter is not implemented.", true);
+        await tgBotDo.sendMessage(null, "🛠 Sorry, but media sending without last chatter is not implemented.", true);
         // TODO: to be implemented.
         return;
     }
