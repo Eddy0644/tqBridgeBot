@@ -69,13 +69,13 @@ const tgBotDo = {
         if (receiver && receiver.tgThreadId) form.message_thread_id = receiver.tgThreadId;
         if (isSilent) form.disable_notification = true;
         if (parseMode) form.parse_mode = parseMode;
-        return tgbot.sendMessage(receiver ? receiver.tgGroupId : secret.target.tgID, msg, form).catch((e) => tgLogger.warn(e.toString()));
+        return tgbot.sendMessage(receiver ? receiver.tgGroupId : secret.class.fallback.tgGroupId, msg, form).catch((e) => tgLogger.warn(e.toString()));
     },
-    sendChatAction: async (action) => {
+    sendChatAction: async (action, receiver = null) => {
         await delay(100);
-        return await tgbot.sendChatAction(secret.target.tgID, action,
-            secret.target.tgDefThreadID ? {message_thread_id: secret.target.tgDefThreadID} : {}
-        ).catch((e) => {
+        const form = {};
+        if (receiver && receiver.tgThreadId) form.message_thread_id = receiver.tgThreadId;
+        return await tgbot.sendChatAction(receiver ? receiver.tgGroupId : secret.class.fallback.tgGroupId, action, form).catch((e) => {
             tgLogger.warn(e.toString());
         });
     },
@@ -98,7 +98,7 @@ const tgBotDo = {
         // noinspection JSUnresolvedVariable
         if (receiver && receiver.tgThreadId) form.message_thread_id = receiver.tgThreadId;
         if (isSilent) form.disable_notification = true;
-        return await tgbot.sendPhoto(receiver ? receiver.tgGroupId : secret.target.tgID, path, form, {contentType: 'image/gif'}).catch((e) => tgLogger.warn(e.toString()));
+        return await tgbot.sendPhoto(receiver ? receiver.tgGroupId : secret.class.fallback.tgGroupId, path, form, {contentType: 'image/gif'}).catch((e) => tgLogger.warn(e.toString()));
     },
     sendAnimation: async (caption, path, isSilent = false, hasSpoiler = false) => {
         await delay(100);

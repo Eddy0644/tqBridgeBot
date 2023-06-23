@@ -127,7 +127,7 @@ async function onTGMsg(tgMsg) {
                     if (mapPair[3] === "group") sendData.group = mapPair[1].group.id;
                     else sendData.friend = mapPair[1].id;
                     await qqBot.sendMessage(sendData);
-                    await tgBotDo.sendChatAction("choose_sticker");
+                    await tgBotDo.sendChatAction("choose_sticker", null);
                     // below: set last explicit talker as speculative (=/slet)
                     addToMsgMappings(tgMsg.message_id, mapPair[1], mapPair[2], mapPair[3]);
                     defLogger.debug(`Handled a message send-back to '${mapPair[1].nickname}'.`);
@@ -240,10 +240,11 @@ async function onTGMsg(tgMsg) {
             with (tgMsg.matched) {
                 if (q[1]) sendData.group = q[0];
                 else sendData.friend = q[0];
+                await qqBot.sendMessage(sendData);
+                await tgBotDo.sendChatAction("choose_sticker", q);
+                defLogger.debug(`Handled a message send-back to C2C talker:(${q[0]}) on TG (${tgMsg.chat.title}).`);
+
             }
-            await qqBot.sendMessage(sendData);
-            await tgBotDo.sendChatAction("choose_sticker");
-            defLogger.debug(`Handled a message send-back to C2C talker:(${tgMsg.matched.q[0]}) on TG (${tgMsg.chat.title}).`);
 
         } else {
             // Multi-target message in default channel
@@ -259,7 +260,7 @@ async function onTGMsg(tgMsg) {
                 if (state.last.isGroup) sendData.group = state.last.target.group.id;
                 else sendData.friend = state.last.target.id;
                 await qqBot.sendMessage(sendData);
-                await tgBotDo.sendChatAction("choose_sticker");
+                await tgBotDo.sendChatAction("choose_sticker", null);
                 defLogger.debug(`Handled a message send-back to speculative talker:(${state.last.isGroup ? state.last.target.group.name : state.last.target.nickname}).`);
             }
         }
