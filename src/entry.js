@@ -72,8 +72,30 @@ function addToMsgMappings(tgMsgId, talker, qqMsg, isGroup = false, override = fa
 }
 
 async function onTGMsg(tgMsg) {
-    //Drop pending updates
+    // Drop pending updates
     if (process.uptime() < 5) return;
+    // Only process messages sent from authorized user
+    if (!secret.target.tgAllowList.includes(tgMsg.from.id)) {
+        tgLogger.trace(`Got TG message (#${tgMsg.message_id}) from unauthorized user (${tgMsg.from.id}), Ignoring.`);
+        return;
+    }
+    // Iterate through secret.class to find matches
+    tgMsg.matched = null;
+    // s=0 -> default, s=1 -> C2C
+    with (secret.class) {
+        for (const pair of C2C) {
+            //TODO add thread_id verification
+            if (tgMsg.chat.id === pair.tgGroupId) {
+                tgMsg.matched = {s: 1, q: pair.qTarget};
+                tgLogger.trace(`Message from C2C group: ${pair.tgGroupId}, setting message default target to QQ(${pair.qTarget})`);
+                break;
+            }
+        }
+        if (!tgMsg.matched) {
+            tgMsg.matched = {s: 0};
+        }
+    }
+
     if (tgMsg.photo) return await deliverTGMediaToQQ(tgMsg, tgMsg.photo, "photo");
     if (tgMsg.sticker) return await deliverTGMediaToQQ(tgMsg, tgMsg.sticker.thumbnail, "photo");
     // if (tgMsg.sticker) {
@@ -81,17 +103,22 @@ async function onTGMsg(tgMsg) {
     //     tgMsg.text = tgMsg.caption ? tgMsg.caption : "";
     // }
     try {
-        if (!secret.target.tgAllowList.includes(tgMsg.from.id)) {
-            tgLogger.trace(`Got TG message (#${tgMsg.message_id}) from unauthorized user (${tgMsg.from.id}), Ignoring.`);
-            return;
-        }
-        if (tgMsg.chat.type === "supergroup" ? (secret.target.tgAllowThreadID.includes(tgMsg.message_thread_id)) : true) {
-        } else {
-            tgLogger.trace(`Got TG message (#${tgMsg.message_id}) from supergroup but thread_id (${tgMsg.message_thread_id}) not match, Ignoring.`);
-            return;
+
+        // if (tgMsg.chat.type === "supergroup" ? (secret.target.tgAllowThreadID.includes(tgMsg.message_thread_id)) : true) {
+        // } else {
+        //     tgLogger.trace(`Got TG message (#${tgMsg.message_id}) from supergroup but thread_id (${tgMsg.message_thread_id}) not match, Ignoring.`);
+        //     return;
+        // }
+
+        // Safety rewrite tgMsg.text
+        if (!tgMsg.text) {
+            tgLogger.warn(`A TG message with empty content has passed through text Processor! Check the log for detail.`);
+            tgLogger.trace(`The detail of tgMsg which caused error: `, JSON.stringify(tgMsg));
         }
 
-        if (tgMsg.reply_to_message && !secret.target.tgThreadInreplyExcludes.includes(tgMsg.reply_to_message.message_id)) {
+        // if (tgMsg.reply_to_message && !secret.target.tgThreadInreplyExcludes.includes(tgMsg.reply_to_message.message_id)) {
+        if (tgMsg.matched.s === 0 && tgMsg.reply_to_message) {
+            // Only tgMsg from default channel and have reply would go downwards
             for (const mapPair of msgMappings) {
                 if (mapPair[0] === tgMsg.reply_to_message.message_id) {
                     const sendData = {
@@ -108,11 +135,35 @@ async function onTGMsg(tgMsg) {
                 }
             }
             defLogger.debug(`Unable to send-back due to no match in msgMappings.`);
-        } else if (tgMsg.text === "/clear") {
-            tgLogger.trace(`Invoking softReboot by user operation...`);
-            await softReboot("User triggered.");
+            return;
+        }
+        // First match simple commands
+        switch (tgMsg.text) {
+            case "/clear": {
+                if (tgMsg.matched.s === 1) {
+                    return await mod.tgProcessor.replyWithTips("globalCmdToC2C", tgMsg.chat.id, 6);
+                }
+                tgLogger.trace(`Invoking softReboot by user operation...`);
+                await softReboot("User triggered.");
+                return;
+            }
+            case "/lock": {
+                if (tgMsg.matched.s === 1) {
+                    return await mod.tgProcessor.replyWithTips("globalCmdToC2C", tgMsg.chat.id, 6);
+                }
+                state.lockTarget = state.lockTarget ? 0 : 1;
+                const tgMsg = await tgBotDo.sendMessage(null, `Already set lock state to ${state.lockTarget}.`, true);
+                await mod.tgProcessor.replyWithTips("globalCmdToC2C", tgMsg.chat.id, 6);
 
-        } else if (tgMsg.text.indexOf("/mystat") === 0) {
+                state.poolToDelete.add(tgMsg, 6);
+                return;
+            }
+            // case "": {
+            //
+            //     break;
+            // }
+        }
+        if (tgMsg.text.startsWith("/mystat")) {
             await mod.autoRespond.changeMyStat(tgMsg.text.replace("/mystat", ""));
 
         } else if (tgMsg.text.indexOf("F$") === 0 || tgMsg.text.indexOf("/f") === 0) {
@@ -145,10 +196,6 @@ async function onTGMsg(tgMsg) {
                 // state.poolToDelete.add(tgMsg, 6);
             } else qqLogger.debug(`Find [${findToken}] in QQ failed.`);
 
-        } else if (tgMsg.text === "/lock") {
-            state.lockTarget = state.lockTarget ? 0 : 1;
-            const tgMsg = await tgBotDo.sendMessage(null, `Already set lock state to ${state.lockTarget}.`, true);
-            state.poolToDelete.add(tgMsg, 6);
         } else {
             //inline find someone: (priority higher than ops below)
             if (/(::|：：)\n/.test(tgMsg.text)) {
@@ -366,6 +413,7 @@ async function onQQMsg(qdata) {
 }
 
 async function deliverTGMediaToQQ(tgMsg, tg_media, media_type) {
+    //TODO fix me to send media directly to C2C
     if (state.last.s !== STypes.Chat) {
         await tgBotDo.sendMessage(null, "🛠 Sorry, but media sending without last chatter is not implemented.", true);
         // TODO: to be implemented.
