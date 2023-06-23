@@ -86,7 +86,7 @@ async function onTGMsg(tgMsg) {
         for (const pair of C2C) {
             //TODO add thread_id verification
             if (tgMsg.chat.id === pair.tgGroupId) {
-                tgMsg.matched = {s: 1, q: pair.qTarget};
+                tgMsg.matched = {s: 1, q: pair.qTarget, p: pair};
                 tgLogger.trace(`Message from C2C group: ${pair.tgGroupId}, setting message default target to QQ(${pair.qTarget})`);
                 break;
             }
@@ -430,11 +430,14 @@ async function onQQMsg(qdata) {
 
 async function deliverTGMediaToQQ(tgMsg, tg_media, media_type) {
     //TODO fix me to send media directly to C2C
-    if (state.last.s !== STypes.Chat) {
+    const s = tgMsg.matched.s;
+    if (s === 0 && state.last.s !== STypes.Chat) {
+        // In default channel but lastOpt not Chat
         await tgBotDo.sendMessage(null, "🛠 Sorry, but media sending without last chatter is not implemented.", true);
         // TODO: to be implemented.
         return;
     }
+    const receiver = s === 0 ? null : (s === 1 ? tgMsg.matched.p : null);
     tgLogger.trace(`Received TG ${media_type} message, proceeding...`);
     const file_id = (tgMsg.photo) ? tgMsg.photo[tgMsg.photo.length - 1].file_id : tg_media.file_id;
     const fileCloudPath = (await tgbot.getFile(file_id)).file_path;
@@ -447,7 +450,7 @@ async function deliverTGMediaToQQ(tgMsg, tg_media, media_type) {
     // (tgMsg.photo)?(``):(tgMsg.document?(``):(``))
     // const action = (tgMsg.photo) ? (`upload_photo`) : (tgMsg.document ? (`upload_document`) : (`upload_video`));
     const action = `upload_${media_type}`;
-    await tgBotDo.sendChatAction(action);
+    await tgBotDo.sendChatAction(action, receiver);
     tgLogger.trace(`file_path is ${local_path}.`);
     await tgBotDo.downFromCloud(fileCloudPath, local_path);
     if (tgMsg.sticker) {
@@ -456,16 +459,26 @@ async function deliverTGMediaToQQ(tgMsg, tg_media, media_type) {
     }
     // const {imageId, url, path}
     const {url} = await qqBot.uploadImage({filename: local_path});
-    await tgBotDo.sendChatAction("record_video");
+    await tgBotDo.sendChatAction("record_video", receiver);
     const sendData = {
         message: new mrMessage().addText(tgMsg.caption ? tgMsg.caption : "")
             .addImageUrl(url)
     };
-    if (state.last.isGroup) sendData.group = state.last.target.group.id;
-    else sendData.friend = state.last.target.id;
-    await qqBot.sendMessage(sendData);
-    defLogger.debug(`Handled a (${action}) message send-back to speculative talker:${state.last.isGroup ? state.last.target.group.name : state.last.target.nickname}.`);
-    await tgBotDo.sendChatAction("choose_sticker");
+    if (s === 0) {
+        if (state.last.isGroup) sendData.group = state.last.target.group.id;
+        else sendData.friend = state.last.target.id;
+        await qqBot.sendMessage(sendData);
+        defLogger.debug(`Handled a (${action}) message send-back to speculative talker:${state.last.isGroup ? state.last.target.group.name : state.last.target.nickname}.`);
+    } else {
+        // C2C media delivery
+        with (tgMsg.matched) {
+            if (q[1]) sendData.group = q[0];
+            else sendData.friend = q[0];
+            await qqBot.sendMessage(sendData);
+            defLogger.debug(`Handled a (${action}) send-back to C2C talker:(${q[0]}) on TG (${tgMsg.chat.title}).`);
+        }
+    }
+    await tgBotDo.sendChatAction("choose_sticker", receiver);
     return true;
 }
 
