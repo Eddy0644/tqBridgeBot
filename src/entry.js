@@ -392,12 +392,12 @@ async function onQQMsg(qdata) {
             // These merge codes need to be improved!!!!!!!
             try {
                 if (!isGroup) {
-                    if (coProcessor.isPreStateValid(state.prePerson, qdata.sender.id)) {
+                    if (0 && coProcessor.isPreStateValid(state.prePerson, qdata.sender.id)) {
                         const result = await mod.tgProcessor.mergeToPrev_tgMsg(qdata, false, content, name);
                         if (result === true) return;
                     } else qdata.prePersonNeedUpdate = true;
                 } else {
-                    if (coProcessor.isPreStateValid(state.preGroup, qdata.sender.group.id)) {
+                    if (0 && coProcessor.isPreStateValid(state.preGroup, qdata.sender.group.id)) {
                         const result = await mod.tgProcessor.mergeToPrev_tgMsg(qdata, true, content, name);
                         if (result === true) return;
                     } else qdata.preGroupNeedUpdate = true;

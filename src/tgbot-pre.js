@@ -114,7 +114,7 @@ const tgBotDo = {
         if (isSilent) form.disable_notification = true;
         return await tgbot.sendAnimation(secret.target.tgID, path, form, {contentType: 'image/gif'}).catch((e) => tgLogger.warn(e.toString()));
     },
-    sendMediaGroup: async (caption, arr, isSilent = false, hasSpoiler = false) => {
+    sendMediaGroup:/* Not used */ async (caption, arr, isSilent = false, hasSpoiler = false) => {
         await delay(100);
         let form = {
             caption: caption,
