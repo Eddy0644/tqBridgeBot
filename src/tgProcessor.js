@@ -35,10 +35,17 @@ async function mergeToPrev_tgMsg(qdata, isGroup, content, name = "") {
 
 async function replyWithTips(tipMode = "", target = null, timeout = 6, additional = null) {
     const {tgLogger, state} = env;
-    let message = "";
+    let message = "", form = {};
     switch (tipMode) {
         case "globalCmdToC2C":
             message = `You sent a global command to a C2C chat. The operation has been blocked and please check.`;
+            break;
+        case "lockStateChange":
+            message = `Already set lock state to ${additional}.`;
+            break;
+        case "softReboot":
+            message = `Soft Reboot Successful.\nReason: <code>${additional}</code>`;
+            form = {reply_markup: {}};
             break;
         default:
             tgLogger.error(`Wrong call of tg replyWithTips() with invalid 'tipMode'. Please check arguments.\n${tipMode}\t${target}`);
@@ -48,7 +55,7 @@ async function replyWithTips(tipMode = "", target = null, timeout = 6, additiona
         tgLogger.error(`Wrong call of tg replyWithTips() with null 'target'. Please check arguments.\n${tipMode}\t${target}`);
         return;
     }
-    const tgMsg = await tgBotDo.sendMessage({tgGroupId: target}, message, true);
+    const tgMsg = await tgBotDo.sendMessage({tgGroupId: target}, message, true, "HTML", form);
     state.poolToDelete.add(tgMsg, timeout);
 }
 

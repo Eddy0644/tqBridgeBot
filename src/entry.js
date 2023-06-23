@@ -137,6 +137,7 @@ async function onTGMsg(tgMsg) {
             defLogger.debug(`Unable to send-back due to no match in msgMappings.`);
             return;
         }
+
         // First match simple commands
         switch (tgMsg.text) {
             case "/clear": {
@@ -152,11 +153,7 @@ async function onTGMsg(tgMsg) {
                     return await mod.tgProcessor.replyWithTips("globalCmdToC2C", tgMsg.chat.id, 6);
                 }
                 state.lockTarget = state.lockTarget ? 0 : 1;
-                const tgMsg = await tgBotDo.sendMessage(null, `Already set lock state to ${state.lockTarget}.`, true);
-                await mod.tgProcessor.replyWithTips("globalCmdToC2C", tgMsg.chat.id, 6);
-
-                state.poolToDelete.add(tgMsg, 6);
-                return;
+                return await mod.tgProcessor.replyWithTips("lockStateChange", tgMsg.chat.id, 6, state.lockTarget);
             }
             // case "": {
             //
@@ -164,11 +161,12 @@ async function onTGMsg(tgMsg) {
             // }
         }
         if (tgMsg.text.startsWith("/mystat")) {
-            await mod.autoRespond.changeMyStat(tgMsg.text.replace("/mystat", ""));
+            return await mod.autoRespond.changeMyStat(tgMsg.text.replace("/mystat", ""));
 
-        } else if (tgMsg.text.indexOf("F$") === 0 || tgMsg.text.indexOf("/f") === 0) {
+        }
+        if (tgMsg.text.startsWith("F$") || tgMsg.text.startsWith("/f")) {
             // Want to find somebody, and have inline parameters
-            let isGroup = (tgMsg.text.indexOf("/fg") === 0);
+            let isGroup = (tgMsg.text.startsWith("/fg"));
             // only /fg____ is allowed to retrieve groups
             const findToken = tgMsg.text.replace("F$", "").replace("/fg", "").replace("/f", "");
             let targetQQ = null;
@@ -195,58 +193,61 @@ async function onTGMsg(tgMsg) {
                 addToMsgMappings(tgMsg.message_id, res, null, isGroup);
                 // state.poolToDelete.add(tgMsg, 6);
             } else qqLogger.debug(`Find [${findToken}] in QQ failed.`);
+            return;
+        }
 
-        } else {
-            //inline find someone: (priority higher than ops below)
-            if (/(::|：：)\n/.test(tgMsg.text)) {
-                const match = tgMsg.text.match(/^(.{2,10})(::|：：)\n/);
-                if (match && match[1]) {
-                    // Parse Success
-                    const findToken = match[1];
-                    let targetQQ = null, isGroup = false;
-                    for (const pair of secret.tgConf.nameAliases) {
-                        if (findToken === pair[0]) {
-                            targetQQ = pair[1];
-                            if (pair[2] === "group") isGroup = true;
-                            break;
-                        }
+        // Last process block
+
+        //inline find someone: (priority higher than ops below)
+        if (/(::|：：)\n/.test(tgMsg.text)) {
+            const match = tgMsg.text.match(/^(.{2,10})(::|：：)\n/);
+            if (match && match[1]) {
+                // Parse Success
+                const findToken = match[1];
+                let targetQQ = null, isGroup = false;
+                for (const pair of secret.tgConf.nameAliases) {
+                    if (findToken === pair[0]) {
+                        targetQQ = pair[1];
+                        if (pair[2] === "group") isGroup = true;
+                        break;
                     }
-                    if (targetQQ) {
-                        let content, res;
-                        if (!isGroup) {
-                            res = await qqBot.getUserProfile({qq: targetQQ});
-                            res.id = targetQQ;
-                            content = `[Inline]🔍Found: \`${JSON.stringify(res)}\`;`;
-                        } else {
-                            content = `[Inline]🔍Targeting Group ${targetQQ};`;
-                            res = {group: {id: targetQQ, name: targetQQ}};
-                        }
-                        defLogger.debug(content);
-                        // TODO force override of message content but need a fix
-                        tgMsg.text = tgMsg.text.replace(match[0], "");
-                        addToMsgMappings(tgMsg.message_id, res, null, isGroup, true);
-                        // left empty here, to continue forward message to talker and reuse the code
-                    } else defLogger.trace(`Message have inline search, but no match in nameAliases pair.`);
-                } else {
-                    defLogger.debug(`Message have dual colon, but parse search token failed. Please Check.`);
                 }
-            }
-            if (Object.keys(state.last).length === 0) {
-                await tgbot.sendMessage(tgMsg.chat.id, 'Nothing to do upon your message, ' + tgMsg.chat.id);
-                await tgbot.setMyCommands(Config.TGBotCommands);
-            } else if (state.last.s === STypes.Chat) {
-                // forward to last talker
-                const sendData = {
-                    // friend: state.last.target.id,
-                    message: new mrMessage().addText(tgMsg.text)
-                };
-                if (state.last.isGroup) sendData.group = state.last.target.group.id;
-                else sendData.friend = state.last.target.id;
-                await qqBot.sendMessage(sendData);
-                await tgBotDo.sendChatAction("choose_sticker");
-                defLogger.debug(`Handled a message send-back to speculative talker:(${state.last.isGroup ? state.last.target.group.name : state.last.target.nickname}).`);
+                if (targetQQ) {
+                    let content, res;
+                    if (!isGroup) {
+                        res = await qqBot.getUserProfile({qq: targetQQ});
+                        res.id = targetQQ;
+                        content = `[Inline]🔍Found: \`${JSON.stringify(res)}\`;`;
+                    } else {
+                        content = `[Inline]🔍Targeting Group ${targetQQ};`;
+                        res = {group: {id: targetQQ, name: targetQQ}};
+                    }
+                    defLogger.debug(content);
+                    // TODO force override of message content but need a fix
+                    tgMsg.text = tgMsg.text.replace(match[0], "");
+                    addToMsgMappings(tgMsg.message_id, res, null, isGroup, true);
+                    // left empty here, to continue forward message to talker and reuse the code
+                } else defLogger.trace(`Message have inline search, but no match in nameAliases pair.`);
+            } else {
+                defLogger.debug(`Message have dual colon, but parse search token failed. Please Check.`);
             }
         }
+        if (Object.keys(state.last).length === 0) {
+            await tgbot.sendMessage(tgMsg.chat.id, 'Nothing to do upon your message, ' + tgMsg.chat.id);
+            await tgbot.setMyCommands(Config.TGBotCommands);
+        } else if (state.last.s === STypes.Chat) {
+            // forward to last talker
+            const sendData = {
+                // friend: state.last.target.id,
+                message: new mrMessage().addText(tgMsg.text)
+            };
+            if (state.last.isGroup) sendData.group = state.last.target.group.id;
+            else sendData.friend = state.last.target.id;
+            await qqBot.sendMessage(sendData);
+            await tgBotDo.sendChatAction("choose_sticker");
+            defLogger.debug(`Handled a message send-back to speculative talker:(${state.last.isGroup ? state.last.target.group.name : state.last.target.nickname}).`);
+        }
+
     } catch (e) {
         tgLogger.warn(`Uncaught Error while handling TG message: ${e.message}.`);
     }
@@ -262,10 +263,7 @@ async function softReboot(reason) {
         firstWord: ""
     };
     msgMergeFailCount = 6;
-    const tgMsg = await tgBotDo.sendMessage(null, `Soft Reboot Successful.\nReason: <code>${reason}</code>`, userDo, "HTML", {
-        reply_markup: {}
-    });
-    state.poolToDelete.add(tgMsg, userDo ? 6 : 25);
+    await mod.tgProcessor.replyWithTips("softReboot", secret.class.fallback.tgGroupId, userDo ? 6 : 25, reason);
 }
 
 async function onQQMsg(qdata) {
