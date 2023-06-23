@@ -199,7 +199,7 @@ async function onTGMsg(tgMsg) {
         // Last process block
 
         //inline find someone: (priority higher than ops below)
-        if (/(::|：：)\n/.test(tgMsg.text)) {
+        if (tgMsg.matched.s === 0 && /(::|：：)\n/.test(tgMsg.text)) {
             const match = tgMsg.text.match(/^(.{2,10})(::|：：)\n/);
             if (match && match[1]) {
                 // Parse Success
@@ -232,22 +232,39 @@ async function onTGMsg(tgMsg) {
                 defLogger.debug(`Message have dual colon, but parse search token failed. Please Check.`);
             }
         }
-        if (Object.keys(state.last).length === 0) {
-            await tgbot.sendMessage(tgMsg.chat.id, 'Nothing to do upon your message, ' + tgMsg.chat.id);
-            await tgbot.setMyCommands(Config.TGBotCommands);
-        } else if (state.last.s === STypes.Chat) {
-            // forward to last talker
+        if (tgMsg.matched.s === 1) {
+            // C2C mode
             const sendData = {
-                // friend: state.last.target.id,
                 message: new mrMessage().addText(tgMsg.text)
             };
-            if (state.last.isGroup) sendData.group = state.last.target.group.id;
-            else sendData.friend = state.last.target.id;
+            with (tgMsg.matched) {
+                if (q[1]) sendData.group = q[0];
+                else sendData.friend = q[0];
+            }
             await qqBot.sendMessage(sendData);
             await tgBotDo.sendChatAction("choose_sticker");
-            defLogger.debug(`Handled a message send-back to speculative talker:(${state.last.isGroup ? state.last.target.group.name : state.last.target.nickname}).`);
+            defLogger.debug(`Handled a message send-back to C2C talker:(${tgMsg.matched.q[0]}) on TG (${tgMsg.chat.title}).`);
+
+        } else {
+            // Multi-target message in default channel
+            if (Object.keys(state.last).length === 0) {
+                await mod.tgProcessor.replyWithTips("nothingToDo", tgMsg.chat.id, 0);
+                await tgbot.setMyCommands(Config.TGBotCommands);
+            } else if (state.last.s === STypes.Chat) {
+                // forward to last talker
+                const sendData = {
+                    // friend: state.last.target.id,
+                    message: new mrMessage().addText(tgMsg.text)
+                };
+                if (state.last.isGroup) sendData.group = state.last.target.group.id;
+                else sendData.friend = state.last.target.id;
+                await qqBot.sendMessage(sendData);
+                await tgBotDo.sendChatAction("choose_sticker");
+                defLogger.debug(`Handled a message send-back to speculative talker:(${state.last.isGroup ? state.last.target.group.name : state.last.target.nickname}).`);
+            }
         }
 
+        // Overall try-catch for onTGMsg() ---------------------
     } catch (e) {
         tgLogger.warn(`Uncaught Error while handling TG message: ${e.message}.`);
     }

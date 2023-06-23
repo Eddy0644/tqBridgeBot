@@ -47,6 +47,9 @@ async function replyWithTips(tipMode = "", target = null, timeout = 6, additiona
             message = `Soft Reboot Successful.\nReason: <code>${additional}</code>`;
             form = {reply_markup: {}};
             break;
+        case "nothingToDo":
+            message = `Nothing to do upon your message, ${target}`;
+            break;
         default:
             tgLogger.error(`Wrong call of tg replyWithTips() with invalid 'tipMode'. Please check arguments.\n${tipMode}\t${target}`);
             return;
@@ -56,7 +59,7 @@ async function replyWithTips(tipMode = "", target = null, timeout = 6, additiona
         return;
     }
     const tgMsg = await tgBotDo.sendMessage({tgGroupId: target}, message, true, "HTML", form);
-    state.poolToDelete.add(tgMsg, timeout);
+    if (timeout !== 0) state.poolToDelete.add(tgMsg, timeout);
 }
 
 module.exports = (incomingEnv) => {
