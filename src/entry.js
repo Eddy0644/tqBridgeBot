@@ -294,7 +294,7 @@ async function onQQMsg(qdata) {
         }
     }
     try {
-        let content = "", isGroup = false, deliverTemplate;
+        let content = "", isGroup = false, deliverTemplate, deliverTmpl_withCard = "";
         let name, nominalID;
         if (!qdata.sender.group) {
             deliverTemplate = `📨[<b>${qdata.sender.remark}</b>] `;
@@ -303,6 +303,7 @@ async function onQQMsg(qdata) {
         } else {
             isGroup = true;
             deliverTemplate = `📬[<b>${qdata.sender.memberName}</b> @ ${qdata.sender.group.name}] `;
+            deliverTmpl_withCard = `📨[<b>${qdata.sender.remark}</b>] `;
             name = qdata.sender.memberName;
             nominalID = qdata.sender.group.id;
         }
@@ -360,8 +361,8 @@ async function onQQMsg(qdata) {
         qqLogger.trace(`Got QQ message from: ${JSON.stringify(qdata.sender, null, 2)} Message Chain is: ${JSON.stringify(qdata.messageChain, null, 2)}`);
         let tgMsg, rand0 = Math.random().toString().substring(4, 7);
         qdata.processed = content;
-        if (mod.autoRespond.needAutoRespond(nominalID)) {
-            await mod.autoRespond.doAutoRespond(nominalID, qdata, isGroup);
+        with (mod.autoRespond) if (needAutoRespond(nominalID)) {
+            await doAutoRespond(nominalID, qdata, isGroup);
         }
 
         // Start deliver process, start fetching from config
@@ -379,6 +380,8 @@ async function onQQMsg(qdata) {
             }
         }
 
+        // Start delivering
+        const deliverText = (qdata.matched.s === 1) ? content : (isGroup ? `${deliverTmpl_withCard + content}` : `${deliverTemplate_ + content}`);
         if (imagePool.length === 1) {
             if (shouldSpoiler) {
                 tgMsg = await tgBotDo.sendAnimation(deliverTemplate + `[${rand0}]`, imagePool[0], true, true);
@@ -386,19 +389,19 @@ async function onQQMsg(qdata) {
                 content = mod.qqProcessor.prodImageLink(imagePool.pop(), true);
                 // then the imagePool become zero and continue to deliver as Text.
             } else {
-                tgMsg = await tgBotDo.sendPhoto(qdata.receiver, deliverTemplate + content, imagePool[0], false, false);
+                tgMsg = await tgBotDo.sendPhoto(qdata.receiver, deliverText, imagePool[0], false, false);
             }
         }
-        if (imagePool.length === 0) {
-            // These merge codes need to be improved!!!!!!!
+        // No matter {imagePool.length} >=2 or =0, deliver Text and [Image] to TG
+        if (imagePool.length !== 0) {
             try {
                 if (!isGroup) {
-                    if (0 && coProcessor.isPreStateValid(state.prePerson, qdata.sender.id)) {
+                    if (coProcessor.isPreStateValid(state.prePerson, qdata.sender.id)) {
                         const result = await mod.tgProcessor.mergeToPrev_tgMsg(qdata, false, content, name);
                         if (result === true) return;
                     } else qdata.prePersonNeedUpdate = true;
                 } else {
-                    if (0 && coProcessor.isPreStateValid(state.preGroup, qdata.sender.group.id)) {
+                    if (coProcessor.isPreStateValid(state.preGroup, qdata.sender.group.id)) {
                         const result = await mod.tgProcessor.mergeToPrev_tgMsg(qdata, true, content, name);
                         if (result === true) return;
                     } else qdata.preGroupNeedUpdate = true;
@@ -409,7 +412,7 @@ async function onQQMsg(qdata) {
                 if (msgMergeFailCount < 0) await softReboot("merging message failure reaches threshold.");
             }
 
-            tgMsg = await tgBotDo.sendMessage(qdata.receiver, deliverTemplate + content, false, "HTML");
+            tgMsg = await tgBotDo.sendMessage(qdata.receiver, deliverText, false, "HTML");
 
             if (!isGroup && qdata.prePersonNeedUpdate) {
                 state.prePerson.pers_id = qdata.sender.id;
