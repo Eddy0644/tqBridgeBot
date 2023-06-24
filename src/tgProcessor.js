@@ -25,7 +25,8 @@ async function mergeToPrev_tgMsg(qdata, isGroup, content, name = "") {
         return true;
     } else {
         // 准备修改先前的消息，去除头部
-        const newString = `📨⛓️ [<b>${name}</b>] - - - -\n${_.firstWord}\n[${newItemTitle}] ${content}`;
+        const newString = (/* C2C msg do not need header */qdata.receiver.qTarget ? `` :
+            `📨⛓️ [<b>${name}</b>] - - - -\n`) + `${_.firstWord}\n[${newItemTitle}] ${content}`;
         _.tgMsg = await tgBotDo.editMessageText(newString, _.tgMsg, _.tg_chat_id);
         _.firstWord = "";
         defLogger.debug(`Delivered new message "${content}" from ${word}: ${name} into first message.`);

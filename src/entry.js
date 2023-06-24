@@ -381,7 +381,7 @@ async function onQQMsg(qdata) {
         }
 
         // Start delivering
-        //TODO fixme! now using qTaregt to determine if is C2C
+        //TODO fixme! now using qTaregt to determine if is C2C (x2 places)
         const deliverText = (qdata.receiver.qTarget) ? (isGroup ? `${deliverTmpl_withCard + content}` : content) : `${deliverTemplate + content}`;
         if (imagePool.length === 1) {
             if (shouldSpoiler) {
