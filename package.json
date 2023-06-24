@@ -1,6 +1,6 @@
 {
   "name": "tqbridgebot",
-  "version": "0.3.2",
+  "version": "0.3.3",
   "dependencies": {
     "dayjs": "^1.11.7",
     "file-box": "^1.4.15",
@@ -13,7 +13,7 @@
   "scripts": {
     "start": "node src/entry.js poll",
     "p": "node src/entry.js poll",
-    "h0": "node src/entry.js hook 0",
+    "h3": "node src/entry.js hook 3",
     "h9": "node src/entry.js hook 9"
   },
   "repository": "https://github.com/netcyabc/tqBridgeBot"

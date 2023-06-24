@@ -242,7 +242,7 @@ async function onTGMsg(tgMsg) {
                 if (q[1]) sendData.group = q[0];
                 else sendData.friend = q[0];
                 await qqBot.sendMessage(sendData);
-                await tgBotDo.sendChatAction("choose_sticker", q);
+                await tgBotDo.sendChatAction("choose_sticker", p);
                 defLogger.debug(`Handled a message send-back to C2C talker:(${q[0]}) on TG (${tgMsg.chat.title}).`);
 
             }
@@ -303,7 +303,7 @@ async function onQQMsg(qdata) {
         } else {
             isGroup = true;
             deliverTemplate = `📬[<b>${qdata.sender.memberName}</b> @ ${qdata.sender.group.name}] `;
-            deliverTmpl_withCard = `📨[<b>${qdata.sender.remark}</b>] `;
+            deliverTmpl_withCard = `📨[<b>${qdata.sender.memberName}</b>] `;
             name = qdata.sender.memberName;
             nominalID = qdata.sender.group.id;
         }
@@ -381,7 +381,8 @@ async function onQQMsg(qdata) {
         }
 
         // Start delivering
-        const deliverText = (qdata.matched.s === 1) ? content : (isGroup ? `${deliverTmpl_withCard + content}` : `${deliverTemplate_ + content}`);
+        //TODO fixme! now using qTaregt to determine if is C2C
+        const deliverText = (qdata.receiver.qTarget) ? (isGroup ? `${deliverTmpl_withCard + content}` : content) : `${deliverTemplate + content}`;
         if (imagePool.length === 1) {
             if (shouldSpoiler) {
                 tgMsg = await tgBotDo.sendAnimation(deliverTemplate + `[${rand0}]`, imagePool[0], true, true);
@@ -393,7 +394,7 @@ async function onQQMsg(qdata) {
             }
         }
         // No matter {imagePool.length} >=2 or =0, deliver Text and [Image] to TG
-        if (imagePool.length !== 0) {
+        if (imagePool.length !== 1) {
             try {
                 if (!isGroup) {
                     if (coProcessor.isPreStateValid(state.prePerson, qdata.sender.id)) {
@@ -418,11 +419,13 @@ async function onQQMsg(qdata) {
                 state.prePerson.pers_id = qdata.sender.id;
                 state.prePerson.tgMsg = tgMsg;
                 state.prePerson.firstWord = `[${dayjs().format("H:mm:ss")}] ${content}`;
+                state.prePerson.tg_chat_id = qdata.receiver.tgGroupId;
             }
             if (isGroup && qdata.preGroupNeedUpdate) {
                 state.preGroup.pers_id = qdata.sender.group.id;
                 state.preGroup.tgMsg = tgMsg;
                 state.preGroup.firstWord = `[${qdata.sender.memberName}] ${content}`;
+                state.preGroup.tg_chat_id = qdata.receiver.tgGroupId;
             }
         }
         // else tgMsg = await tgBotDo.sendMediaGroup(content, imagePool, false, false);
