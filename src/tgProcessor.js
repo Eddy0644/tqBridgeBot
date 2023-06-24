@@ -66,9 +66,18 @@ async function replyWithTips(tipMode = "", target = null, timeout = 6, additiona
         // tgLogger.error(`Wrong call of tg replyWithTips() with null 'target'. Please check arguments.\n${tipMode}\t${target}`);
         // return;
     }
-    const tgMsg = await tgBotDo.sendMessage({tgGroupId: target}, message, true, "HTML", form);
-    if (timeout !== 0) state.poolToDelete.add(tgMsg, timeout);
-    defLogger.debug(`Sent out following tips: {${message}}`);
+    try {
+        const tgMsg = await tgBotDo.sendMessage({tgGroupId: target}, message, true, "HTML", form);
+        defLogger.debug(`Sent out following tips: {${message}}`);
+        if (timeout !== 0) {
+            tgLogger.debug(`Added message #${tgMsg.message_id} to poolToDelete with timer (${timeout})sec.`);
+            state.poolToDelete.push({tgMsg: tgMsg, toDelTs: (dayjs().unix()) + timeout, chat_id: target});
+        }
+    } catch (e) {
+        defLogger.warn(`Sending Tip failed in post-check, please check!`);
+    }
+    // if (timeout !== 0) state.poolToDelete.add(tgMsg, timeout);
+
 }
 
 module.exports = (incomingEnv) => {

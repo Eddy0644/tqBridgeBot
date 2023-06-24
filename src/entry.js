@@ -41,14 +41,14 @@ const mod = {
     tgProcessor: require('./tgProcessor')(env),
 }
 env.mod = mod;
-state.poolToDelete.add = function (tgMsg, delay) {
-    if (tgMsg !== null) {
-        tgLogger.debug(`Added message #${tgMsg.message_id} to poolToDelete with timer (${delay})sec.`);
-        state.poolToDelete.push({tgMsg: tgMsg, toDelTs: (dayjs().unix()) + delay});
-    } else {
-        tgLogger.debug(`Attempting to add message to poolToDelete with timer (${delay})sec, but got null Object.`);
-    }
-};
+// state.poolToDelete.add = function (tgMsg, delay) {
+//     if (tgMsg !== null) {
+//         tgLogger.debug(`Added message #${tgMsg.message_id} to poolToDelete with timer (${delay})sec.`);
+//         state.poolToDelete.push({tgMsg: tgMsg, toDelTs: (dayjs().unix()) + delay,chat_id:});
+//     } else {
+//         tgLogger.debug(`Attempting to add message to poolToDelete with timer (${delay})sec, but got null Object.`);
+//     }
+// };
 
 async function sendTestMessage() {
     await qqBot.sendMessage({
@@ -525,7 +525,7 @@ const timerData = setInterval(async () => {
                 // delete the element first to avoid the same ITEM triggers function again if interrupted by errors.
                 state.poolToDelete.splice(parseInt(itemId), 1);
                 tgLogger.debug(`Attempting to remove expired messages driven by its timer.`);
-                await tgBotDo.revokeMessage(item.tgMsg.message_id);
+                await tgBotDo.revokeMessage(item.tgMsg.message_id, item.chat_id);
             }
         }
     } catch (e) {

@@ -62,6 +62,7 @@ tgbot.on('webhook_error', async (e) => {
     tgLogger.warn("Webhook - " + e.message.replace("Error: ", ""));
 });
 const tgBotDo = {
+    // P.S. receiver is a Object with groupId and threadId; chat_id is not tight to threads.
     sendMessage: async (receiver = null, msg, isSilent = false, parseMode = null, form = {}) => {
         await delay(100);
         // if (secret.target.tgDefThreadID) form.message_thread_id = secret.target.tgDefThreadID;
@@ -79,9 +80,9 @@ const tgBotDo = {
             tgLogger.warn(e.toString());
         });
     },
-    revokeMessage: async (msgId) => {
+    revokeMessage: async (msgId, chat_id) => {
         await delay(100);
-        return await tgbot.deleteMessage(secret.target.tgID, msgId).catch((e) => {
+        return await tgbot.deleteMessage(chat_id, msgId).catch((e) => {
             tgLogger.warn(e.toString());
         });
     },
