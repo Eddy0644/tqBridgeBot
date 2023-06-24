@@ -58,13 +58,14 @@ async function sendTestMessage() {
 
 let msgMappings = [];
 
-function addToMsgMappings(tgMsgId, talker, qqMsg, isGroup = false, override = false) {
-    if (!tgMsgId) msgMappings.push([tgMsgId, talker, qqMsg, isGroup ? "group" : ""]);
+function addToMsgMappings(tgMsgId, tg_chat_id, talker, qqMsg, isGroup = false, override = false) {
+    if (!tgMsgId) msgMappings.push([tgMsgId, talker, qqMsg, isGroup ? "group" : "", tg_chat_id]);
     if (state.lockTarget === 0 || override) state.last = {
         s: STypes.Chat,
         target: talker,
         qqMsg,
         tgMsgId,
+        tg_chat_id,
         isGroup
     };
     defLogger.debug(`Added temporary mapping from TG msg #${tgMsgId} to ${isGroup ? "QGroup" : "PersonQQ"} '${isGroup ? talker.group.name : talker.nickname}'.`);
@@ -119,6 +120,7 @@ async function onTGMsg(tgMsg) {
         // if (tgMsg.reply_to_message && !secret.target.tgThreadInreplyExcludes.includes(tgMsg.reply_to_message.message_id)) {
         if (tgMsg.matched.s === 0 && tgMsg.reply_to_message) {
             // Only tgMsg from default channel and have reply would go downwards
+            // TODO: classified channels should go here too
             for (const mapPair of msgMappings) {
                 if (mapPair[0] === tgMsg.reply_to_message.message_id) {
                     const sendData = {
@@ -129,7 +131,7 @@ async function onTGMsg(tgMsg) {
                     await qqBot.sendMessage(sendData);
                     await tgBotDo.sendChatAction("choose_sticker", null);
                     // below: set last explicit talker as speculative (=/slet)
-                    addToMsgMappings(tgMsg.message_id, mapPair[1], mapPair[2], mapPair[3]);
+                    addToMsgMappings(tgMsg.message_id, mapPair[4], mapPair[1], mapPair[2], mapPair[3]);
                     defLogger.debug(`Handled a message send-back to '${mapPair[1].nickname}'.`);
                     return;
                 }
@@ -190,8 +192,7 @@ async function onTGMsg(tgMsg) {
                 }
                 qqLogger.debug(content);
                 const tgMsg = await tgBotDo.sendMessage(null, content, true, "MarkdownV2");
-                addToMsgMappings(tgMsg.message_id, res, null, isGroup);
-                // state.poolToDelete.add(tgMsg, 6);
+                addToMsgMappings(tgMsg.message_id, null, res, null, isGroup);
             } else qqLogger.debug(`Find [${findToken}] in QQ failed.`);
             return;
         }
@@ -225,7 +226,7 @@ async function onTGMsg(tgMsg) {
                     defLogger.debug(content);
                     // TODO force override of message content but need a fix
                     tgMsg.text = tgMsg.text.replace(match[0], "");
-                    addToMsgMappings(tgMsg.message_id, res, null, isGroup, true);
+                    addToMsgMappings(tgMsg.message_id, null, res, null, isGroup, true);
                     // left empty here, to continue forward message to talker and reuse the code
                 } else defLogger.trace(`Message have inline search, but no match in nameAliases pair.`);
             } else {
@@ -422,7 +423,7 @@ async function onQQMsg(qdata) {
             }
         }
         // else tgMsg = await tgBotDo.sendMediaGroup(content, imagePool, false, false);
-        addToMsgMappings(tgMsg.message_id, qdata.sender, qdata.messageChain, isGroup);
+        addToMsgMappings(tgMsg.message_id, qdata.receiver.tgGroupId, qdata.sender, qdata.messageChain, isGroup);
     } catch (e) {
         qqLogger.warn(`Error occurred while handling QQ message:\n\t${e}`);
     }

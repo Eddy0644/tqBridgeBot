@@ -20,13 +20,13 @@ async function mergeToPrev_tgMsg(qdata, isGroup, content, name = "") {
     if (_.firstWord === "") {
         // 已经合并过，标题已经更改，直接追加新内容
         const newString = `${_.tgMsg.text}\n[${newItemTitle}] ${content}`;
-        _.tgMsg = await tgBotDo.editMessageText(newString, _.tgMsg);
+        _.tgMsg = await tgBotDo.editMessageText(newString, _.tgMsg, _.tg_chat_id);
         defLogger.debug(`Delivered new message "${content}" from ${word}: ${name} into 2nd message.`);
         return true;
     } else {
         // 准备修改先前的消息，去除头部
         const newString = `📨⛓️ [<b>${name}</b>] - - - -\n${_.firstWord}\n[${newItemTitle}] ${content}`;
-        _.tgMsg = await tgBotDo.editMessageText(newString, _.tgMsg);
+        _.tgMsg = await tgBotDo.editMessageText(newString, _.tgMsg, _.tg_chat_id);
         _.firstWord = "";
         defLogger.debug(`Delivered new message "${content}" from ${word}: ${name} into first message.`);
         return true;
