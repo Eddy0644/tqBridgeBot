@@ -2,7 +2,7 @@
 // noinspection JSUnreachableSwitchBranches
 
 const dayjs = require('dayjs');
-const {Bot: MiraiBot, Message: mrMessage, Middleware} = require('mirai-js');
+const {Bot: MiraiBot, Middleware} = require('mirai-js');
 const secret = require('../config/secret');
 // const userConf = require('../config/userconf');
 const {qqLogger, tgLogger, defLogger} = require('./logger')('startup');
@@ -67,6 +67,7 @@ function addToMsgMappings(tgMsgId, tg_chat_id, talker, qqMsg, isGroup = false, o
 }
 
 async function onTGMsg(tgMsg) {
+    if (tgMsg.DEPRESS_IDE_WARNING) return;
     // Drop pending updates
     if (process.uptime() < 5) return;
     // Only process messages sent from authorized user
@@ -310,6 +311,8 @@ async function onQQMsg(qdata) {
                 break;
             case "Image": {
                 //TODO: sendMediaGroup with URLs is unimplemented now, using this method temporary
+                /* SUPPRESS warning */
+                if (typeof msg.isEmoji === "undefined") msg.isEmoji = false;
                 if (imagePool.length === 0) {
                     if (msg.isEmoji) shouldSpoiler = true;
                     content += `[${msg.isEmoji ? "CuEmo" : "Image"}] `;
@@ -336,16 +339,7 @@ async function onQQMsg(qdata) {
                 break;
             case "Forward":
             case "ForwardMessage":
-                if (msg.display) {
-                    content += `[${msg.display.title},${msg.display.summary}]\n`;
-                    for (const previewElement of msg.display.preview) {
-                        content += `--> ${previewElement}\n`;
-                    }
-                } else {
-                    // Get summary from ForwardMessage Failed
-                    // content += `[Forwarded Messages]\n`;
-                    content += mod.qqProcessor.handleForwardMessage(msg.nodeList, 1);
-                }
+                content += mod.qqProcessor.handleForwardMessage(msg.nodeList, 1);
                 break;
 
             default:
@@ -536,3 +530,9 @@ const timerData = setInterval(async () => {
 }, 5000);
 let timerDataCount = 6;
 let msgMergeFailCount = 6;
+
+// noinspection JSIgnoredPromiseFromCall
+onTGMsg({
+    chat: undefined, reply_to_message: undefined, edit_date: undefined,
+    DEPRESS_IDE_WARNING: 1
+});
