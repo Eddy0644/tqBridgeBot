@@ -3,7 +3,7 @@ module.exports = {
     autoRespond: {
         allow: 1,
     },
-    emojiReplace: [
+    emojiReplaceList: [
         ["😊", "呲牙"],
         ["🌹", "玫瑰"],
         ["🥀", "凋谢"],

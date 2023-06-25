@@ -2,6 +2,7 @@
 
 const dayjs = require("dayjs");
 const {Message: mrMessage} = require("mirai-js");
+const userConf = require("../config/userconf");
 let env;
 
 async function a() {
@@ -70,8 +71,24 @@ function parseApp(msg) {
     }
 }
 
-function parseFaces(msgText) {
-    return new mrMessage().addText(msgText);
+function parseFaces(origText) {
+    let msg = new mrMessage(), msgText = origText, emojiList = [], ci = -1, cn = 0;
+    for (const facePair of userConf.emojiReplaceList) {
+        while (msgText.indexOf(facePair[0]) !== -1) {
+            msgText = msgText.replace(facePair[0], "|-|");
+            emojiList.push(facePair[1]);
+            cn++;
+        }
+    }
+    for (const textItem of msgText.split("|-|")) {
+        if (ci !== -1) {
+            msg = msg.addFace(emojiList[ci]);
+            ci++;
+        } else ci = 0;
+        msg = msg.addText(textItem);
+    }
+
+    return msg;
 }
 
 module.exports = (incomingEnv) => {
