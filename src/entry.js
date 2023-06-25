@@ -50,12 +50,6 @@ env.mod = mod;
 //     }
 // };
 
-async function sendTestMessage() {
-    await qqBot.sendMessage({
-        friend: secret.target.QNumber, message: new mrMessage().addText('114514')
-    });
-}
-
 let msgMappings = [];
 
 function addToMsgMappings(tgMsgId, tg_chat_id, talker, qqMsg, isGroup = false, override = false) {
@@ -124,7 +118,7 @@ async function onTGMsg(tgMsg) {
             for (const mapPair of msgMappings) {
                 if (mapPair[0] === tgMsg.reply_to_message.message_id) {
                     const sendData = {
-                        message: new mrMessage().addText(tgMsg.text)
+                        message: mod.qqProcessor.parseFaces(tgMsg.text)
                     };
                     if (mapPair[3] === "group") sendData.group = mapPair[1].group.id;
                     else sendData.friend = mapPair[1].id;
@@ -236,7 +230,7 @@ async function onTGMsg(tgMsg) {
         if (tgMsg.matched.s === 1) {
             // C2C mode
             const sendData = {
-                message: new mrMessage().addText(tgMsg.text)
+                message: mod.qqProcessor.parseFaces(tgMsg.text)
             };
             with (tgMsg.matched) {
                 if (q[1]) sendData.group = q[0];
@@ -256,7 +250,7 @@ async function onTGMsg(tgMsg) {
                 // forward to last talker
                 const sendData = {
                     // friend: state.last.target.id,
-                    message: new mrMessage().addText(tgMsg.text)
+                    message: mod.qqProcessor.parseFaces(tgMsg.text)
                 };
                 if (state.last.isGroup) sendData.group = state.last.target.group.id;
                 else sendData.friend = state.last.target.id;
@@ -381,7 +375,7 @@ async function onQQMsg(qdata) {
         }
 
         // Start delivering
-        //TODO fixme! now using qTaregt to determine if is C2C (x2 places)
+        //TODO fixme! now using qTarget to determine if is C2C (x2 places)
         const deliverText = (qdata.receiver.qTarget) ? (isGroup ? `${deliverTmpl_withCard + content}` : content) : `${deliverTemplate + content}`;
         if (imagePool.length === 1) {
             if (shouldSpoiler) {
@@ -468,8 +462,7 @@ async function deliverTGMediaToQQ(tgMsg, tg_media, media_type) {
     const {url} = await qqBot.uploadImage({filename: local_path});
     await tgBotDo.sendChatAction("record_video", receiver);
     const sendData = {
-        message: new mrMessage().addText(tgMsg.caption ? tgMsg.caption : "")
-            .addImageUrl(url)
+        message: mod.qqProcessor.parseFaces(tgMsg.caption ? tgMsg.caption : "").addImageUrl(url)
     };
     if (s === 0) {
         if (state.last.isGroup) sendData.group = state.last.target.group.id;

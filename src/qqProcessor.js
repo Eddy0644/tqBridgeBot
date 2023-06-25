@@ -1,6 +1,7 @@
 // noinspection JSUnreachableSwitchBranches
 
 const dayjs = require("dayjs");
+const {Message: mrMessage} = require("mirai-js");
 let env;
 
 async function a() {
@@ -69,7 +70,11 @@ function parseApp(msg) {
     }
 }
 
+function parseFaces(msgText) {
+    return new mrMessage().addText(msgText);
+}
+
 module.exports = (incomingEnv) => {
     env = incomingEnv;
-    return {handleForwardMessage, prodImageLink, parseApp};
+    return {handleForwardMessage, prodImageLink, parseApp, parseFaces};
 };
