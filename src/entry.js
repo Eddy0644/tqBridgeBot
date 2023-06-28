@@ -53,7 +53,7 @@ env.mod = mod;
 let msgMappings = [];
 
 function addToMsgMappings(tgMsgId, tg_chat_id, talker, qqMsg, isGroup = false, override = false) {
-    if (!tgMsgId) msgMappings.push([tgMsgId, talker, qqMsg, isGroup ? "group" : "", tg_chat_id]);
+    if (tgMsgId) msgMappings.push([tgMsgId, talker, qqMsg, isGroup ? "group" : "", tg_chat_id]);
     if (state.lockTarget === 0 || override) state.last = {
         s: STypes.Chat,
         target: talker,
