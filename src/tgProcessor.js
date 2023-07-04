@@ -41,6 +41,9 @@ async function replyWithTips(tipMode = "", target = null, timeout = 6, additiona
         case "globalCmdToC2C":
             message = `You sent a global command to a C2C chat. The operation has been blocked and please check.`;
             break;
+        case "internalErrorOnTGMsg":
+            message = `There is an internal error occurred on your TG msg. Please check spell and log.`;
+            break;
         case "wrongMYSTAT_setter":
             message = `You sent a global command to a C2C chat. The operation has been blocked and please check.`;
             break;

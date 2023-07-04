@@ -136,8 +136,10 @@ async function onTGMsg(tgMsg) {
         }
 
         // First match simple commands
+        const botName = secret.tgConf.botName;
         switch (tgMsg.text) {
-            case "/clear": {
+            case "/clear":
+            case "/clear" + botName: {
                 if (tgMsg.matched.s === 1) {
                     return await mod.tgProcessor.replyWithTips("globalCmdToC2C", tgMsg.chat.id, 6);
                 }
@@ -145,7 +147,8 @@ async function onTGMsg(tgMsg) {
                 await softReboot("User triggered.");
                 return;
             }
-            case "/lock": {
+            case "/lock":
+            case "/lock" + botName: {
                 if (tgMsg.matched.s === 1) {
                     return await mod.tgProcessor.replyWithTips("globalCmdToC2C", tgMsg.chat.id, 6);
                 }
@@ -191,6 +194,9 @@ async function onTGMsg(tgMsg) {
             } else qqLogger.debug(`Find [${findToken}] in QQ failed.`);
             return;
         }
+
+        // Ensure that @___bot command won't be passed to downstream
+        if (tgMsg.text.includes(botName) && !tgMsg.text.includes(botName + '.')) return await mod.tgProcessor.replyWithTips("internalErrorOnTGMsg", tgMsg.chat.id);
 
         // Last process block
 
