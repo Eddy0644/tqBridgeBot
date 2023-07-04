@@ -61,8 +61,12 @@ tgbot.on('polling_error', async (e) => {
 tgbot.on('webhook_error', async (e) => {
     tgLogger.warn("Webhook - " + e.message.replace("Error: ", ""));
 });
+function logErrorDuringTGSend(err) {
+    let err2 = err.toString().replaceAll("Error:", "");
+    tgLogger.warn(`MsgSendFail: ${err2}`);
+}
 const tgBotDo = {
-    // P.S. receiver is a Object with groupId and threadId; chat_id is not tight to threads.
+    // P.S. receiver is an Object with groupId and threadId; chat_id is not tight to threads.
     sendMessage: async (receiver = null, msg, isSilent = false, parseMode = null, form = {}) => {
         await delay(100);
         // if (secret.target.tgDefThreadID) form.message_thread_id = secret.target.tgDefThreadID;
@@ -70,21 +74,17 @@ const tgBotDo = {
         if (receiver && receiver.tgThreadId) form.message_thread_id = receiver.tgThreadId;
         if (isSilent) form.disable_notification = true;
         if (parseMode) form.parse_mode = parseMode;
-        return tgbot.sendMessage(receiver ? receiver.tgGroupId : secret.class.fallback.tgGroupId, msg, form).catch((e) => tgLogger.warn(e.toString()));
+        return tgbot.sendMessage(receiver ? receiver.tgGroupId : secret.class.fallback.tgGroupId, msg, form).catch(e => logErrorDuringTGSend(e));
     },
     sendChatAction: async (action, receiver = null) => {
         await delay(100);
         const form = {};
         if (receiver && receiver.tgThreadId) form.message_thread_id = receiver.tgThreadId;
-        return await tgbot.sendChatAction(receiver ? receiver.tgGroupId : secret.class.fallback.tgGroupId, action, form).catch((e) => {
-            tgLogger.warn(e.toString());
-        });
+        return await tgbot.sendChatAction(receiver ? receiver.tgGroupId : secret.class.fallback.tgGroupId, action, form).catch(e => logErrorDuringTGSend(e));
     },
     revokeMessage: async (msgId, chat_id) => {
         await delay(100);
-        return await tgbot.deleteMessage(chat_id, msgId).catch((e) => {
-            tgLogger.warn(e.toString());
-        });
+        return await tgbot.deleteMessage(chat_id, msgId).catch(e => logErrorDuringTGSend(e));
     },
     sendPhoto: async (receiver = null, caption, path, isSilent = false, hasSpoiler = false) => {
         await delay(100);
