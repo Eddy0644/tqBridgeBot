@@ -114,8 +114,10 @@ async function onTGMsg(tgMsg) {
 
         // Safety rewrite tgMsg.text
         if (!tgMsg.text) {
-            tgLogger.warn(`A TG message with empty content has passed through text Processor! Check the log for detail.`);
-            tgLogger.trace(`The detail of tgMsg which caused error: `, JSON.stringify(tgMsg));
+            tgLogger.info(`A TG message without 'text' passed through text processor, skipped. ` +
+                `recv: ${Object.getOwnPropertyNames(tgMsg).filter(e => !['message_id', 'from', 'chat', 'date'].includes(e)).join(', ')}`);
+            tgLogger.trace(`The tgMsg detail of which: `, JSON.stringify(tgMsg));
+            return;
         }
 
         // if (tgMsg.reply_to_message && !secret.target.tgThreadInreplyExcludes.includes(tgMsg.reply_to_message.message_id)) {
