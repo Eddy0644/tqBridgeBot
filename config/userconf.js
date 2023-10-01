@@ -3,6 +3,7 @@ module.exports = {
     autoRespond: {
         allow: 1,
     },
+    mergeStopTimeout: 30,
     emojiReplaceList: [
         ["😊", "呲牙"],
         ["🌹", "玫瑰"],

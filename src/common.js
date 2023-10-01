@@ -3,6 +3,7 @@ const crypto = require("crypto");
 const fs = require("fs");
 const https = require("https");
 const {defLogger} = require('./logger')();
+const userConf = require('../config/userconf');
 module.exports = {
     STypes: {
         Chat: 1,
@@ -30,7 +31,7 @@ module.exports = {
                 // noinspection JSUnresolvedVariable
                 const lastDate = (_.tgMsg) ? (_.tgMsg.edit_date || _.tgMsg.date) : 0;
                 const nowDate = dayjs().unix();
-                return (_.pers_id === targetQN && nowDate - lastDate < 12);
+                return (_.pers_id === targetQN && nowDate - lastDate < userConf.mergeStopTimeout);
             } catch (e) {
                 defLogger.debug(`Error occurred while validating pre__State.\n\t${e.toString()}`);
                 return false;
