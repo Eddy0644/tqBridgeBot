@@ -80,8 +80,14 @@ async function onTGMsg(tgMsg) {
     // s=0 -> default, s=1 -> C2C
     with (secret.class) {
         for (const pair of C2C) {
-            //TODO add thread_id verification
-            if (tgMsg.chat.id === pair.tgGroupId) {
+            const thread_verify = (() => {
+                if (pair.tgThreadId) {
+                    if (tgMsg.message_thread_id) {
+                        return pair.tgThreadId === tgMsg.message_thread_id;
+                    } else return false;
+                } else return true;
+            })();
+            if (tgMsg.chat.id === pair.tgGroupId && thread_verify) {
                 tgMsg.matched = {s: 1, q: pair.qTarget, p: pair};
                 tgLogger.trace(`Message from C2C group: ${pair.tgGroupId}, setting message default target to QQ(${pair.qTarget})`);
                 break;
